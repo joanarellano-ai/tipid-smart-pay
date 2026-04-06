@@ -42,7 +42,7 @@ export default function Welcome() {
             variant="outline"
             size="lg"
             className="w-full"
-            onClick={() => navigate("/onboarding")}
+            onClick={() => navigate("/signup")}
           >
             Sign Up <ArrowRight className="ml-1 h-4 w-4" />
           </Button>

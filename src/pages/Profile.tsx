@@ -31,10 +31,10 @@ export default function Profile() {
         {/* User Card */}
         <div className="mb-5 flex items-center gap-4 rounded-2xl bg-card p-5 shadow-card animate-fade-in" style={{ animationDelay: "0.05s" }}>
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary text-xl font-bold text-primary-foreground">
-            {currentUser.name.split(" ").map((n) => n[0]).join("")}
+            {displayName.split(" ").map((n) => n[0]).join("")}
           </div>
           <div>
-            <h2 className="text-lg font-bold text-foreground">{currentUser.name}</h2>
+            <h2 className="text-lg font-bold text-foreground">{displayName}</h2>
             <p className="text-sm text-muted-foreground">{currentUser.groupName}</p>
           </div>
         </div>
