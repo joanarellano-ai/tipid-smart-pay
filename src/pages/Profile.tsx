@@ -7,6 +7,8 @@ import { useNavigate } from "react-router-dom";
 
 export default function Profile() {
   const navigate = useNavigate();
+  const user = useUser();
+  const displayName = user.fullName || currentUser.name;
   const [dark, setDark] = useState(false);
 
   const toggleDark = () => {
