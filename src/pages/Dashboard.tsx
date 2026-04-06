@@ -2,11 +2,14 @@ import { Bell, TrendingUp, TrendingDown, ArrowRight, Zap, CreditCard, Users, Lig
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { currentUser, totalBill, predictedBill, monthlyBills, alerts, formatPeso } from "@/lib/data";
+import { useUser } from "@/lib/userStore";
 import { LineChart, Line, ResponsiveContainer, XAxis, Tooltip } from "recharts";
 import { usageTrends } from "@/lib/data";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const user = useUser();
+  const displayName = user.fullName || currentUser.name;
 
   return (
     <div className="px-4 pt-14 pb-4">
@@ -15,7 +18,7 @@ export default function Dashboard() {
         <div className="mb-6 flex items-center justify-between animate-fade-in">
           <div>
             <p className="text-sm text-muted-foreground">Good morning,</p>
-            <h1 className="text-xl font-bold text-foreground">{currentUser.name.split(" ")[0]} 👋</h1>
+            <h1 className="text-xl font-bold text-foreground">{displayName.split(" ")[0]} 👋</h1>
           </div>
           <button className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-card">
             <Bell className="h-5 w-5 text-foreground" />
