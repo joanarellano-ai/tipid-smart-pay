@@ -8,6 +8,8 @@ import { usageTrends } from "@/lib/data";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const user = useUser();
+  const displayName = user.fullName || currentUser.name;
 
   return (
     <div className="px-4 pt-14 pb-4">
