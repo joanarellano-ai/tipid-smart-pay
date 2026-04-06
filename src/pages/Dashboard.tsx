@@ -18,7 +18,7 @@ export default function Dashboard() {
         <div className="mb-6 flex items-center justify-between animate-fade-in">
           <div>
             <p className="text-sm text-muted-foreground">Good morning,</p>
-            <h1 className="text-xl font-bold text-foreground">{currentUser.name.split(" ")[0]} 👋</h1>
+            <h1 className="text-xl font-bold text-foreground">{displayName.split(" ")[0]} 👋</h1>
           </div>
           <button className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-card">
             <Bell className="h-5 w-5 text-foreground" />
