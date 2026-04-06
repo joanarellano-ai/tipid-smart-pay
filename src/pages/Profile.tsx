@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { currentUser, badges } from "@/lib/data";
-import { ChevronRight, Moon, Sun, Bell, Shield, HelpCircle, LogOut, Zap } from "lucide-react";
+import { useUser } from "@/lib/userStore";
+import { ChevronRight, Moon, Sun, Bell, Shield, HelpCircle, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
