@@ -7,6 +7,7 @@ import Welcome from "./pages/Welcome";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Onboarding from "./pages/Onboarding";
+import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import Utilities from "./pages/Utilities";
 import WalletPage from "./pages/WalletPage";
