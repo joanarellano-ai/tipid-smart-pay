@@ -6,14 +6,17 @@ import {
   BarChart3,
   Brain,
   CreditCard,
-  Users,
   User,
-  ArrowRight,
+  Users,
   UserPlus,
   LogIn,
+  ArrowRight,
+  Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import logo from "@/assets/tipidpay-logo.png";
 
+/* ── Onboarding walkthrough steps ── */
 const steps = [
   {
     icon: BarChart3,
@@ -38,12 +41,34 @@ const steps = [
   },
 ];
 
+/* ── Living-situation options ── */
+const livingOptions = [
+  {
+    value: "alone",
+    icon: User,
+    label: "I live alone",
+    description: "Track and pay your own bills",
+  },
+  {
+    value: "few",
+    icon: Users,
+    label: "With 1–2 friends",
+    description: "Split bills easily between a small group",
+  },
+  {
+    value: "many",
+    icon: Home,
+    label: "3+ friends / shared house",
+    description: "Manage group expenses and shared utilities",
+  },
+];
+
 export default function Onboarding() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [livingType, setLivingType] = useState<string | null>(null);
 
-  const totalSteps = 4; // 3 info + 1 preference
+  const totalSteps = 4;
   const progressValue = ((step + 1) / totalSteps) * 100;
 
   /* ── Steps 0-2: feature walkthrough ── */
@@ -51,17 +76,12 @@ export default function Onboarding() {
     const s = steps[step];
     return (
       <div className="flex min-h-screen flex-col px-6 gradient-hero">
-        {/* Progress bar */}
         <div className="pt-6 pb-2">
           <Progress value={progressValue} className="h-1.5 bg-border" />
         </div>
 
         <div className="flex flex-1 flex-col items-center justify-center">
-          <div
-            className="w-full max-w-sm text-center animate-fade-in"
-            key={step}
-          >
-            {/* Icon */}
+          <div className="w-full max-w-sm text-center animate-fade-in" key={step}>
             <div
               className={cn(
                 "mx-auto mb-10 flex h-28 w-28 items-center justify-center rounded-[2rem] bg-gradient-to-br shadow-xl transition-transform duration-500",
@@ -71,38 +91,23 @@ export default function Onboarding() {
               <s.icon className="h-14 w-14 text-primary-foreground" />
             </div>
 
-            <h2 className="mb-3 text-2xl font-bold text-foreground">
-              {s.title}
-            </h2>
-            <p className="mb-12 text-muted-foreground leading-relaxed">
-              {s.description}
-            </p>
+            <h2 className="mb-3 text-2xl font-bold text-foreground">{s.title}</h2>
+            <p className="mb-12 text-muted-foreground leading-relaxed">{s.description}</p>
 
-            {/* Dot indicators */}
             <div className="mb-8 flex justify-center gap-2">
               {[0, 1, 2].map((i) => (
                 <div
                   key={i}
                   className={cn(
                     "h-2 rounded-full transition-all duration-300",
-                    i === step
-                      ? "w-8 bg-primary"
-                      : i < step
-                      ? "w-2 bg-primary/40"
-                      : "w-2 bg-border"
+                    i === step ? "w-8 bg-primary" : i < step ? "w-2 bg-primary/40" : "w-2 bg-border"
                   )}
                 />
               ))}
             </div>
 
-            <Button
-              variant="hero"
-              size="lg"
-              className="w-full"
-              onClick={() => setStep(step + 1)}
-            >
-              {step < 2 ? "Next" : "Get Started"}{" "}
-              <ArrowRight className="ml-1 h-4 w-4" />
+            <Button variant="hero" size="lg" className="w-full" onClick={() => setStep(step + 1)}>
+              {step < 2 ? "Next" : "Get Started"} <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
 
             <button
@@ -117,93 +122,96 @@ export default function Onboarding() {
     );
   }
 
-  /* ── Step 3: living preference ── */
+  /* ── Step 3: Living situation ── */
   return (
     <div className="flex min-h-screen flex-col px-6 gradient-hero">
-      {/* Progress bar */}
       <div className="pt-6 pb-2">
         <Progress value={progressValue} className="h-1.5 bg-border" />
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center">
-        <div className="w-full max-w-sm text-center animate-fade-in">
-          <h2 className="mb-2 text-2xl font-bold text-foreground">
-            How do you live?
-          </h2>
-          <p className="mb-8 text-muted-foreground">
-            This helps us personalize your experience
-          </p>
-
-          <div className="space-y-3">
-            {[
-              { value: "alone", icon: User, label: "I live alone" },
-              {
-                value: "roommates",
-                icon: Users,
-                label: "I have roommates",
-              },
-            ].map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setLivingType(opt.value)}
-                className={cn(
-                  "flex w-full items-center gap-4 rounded-2xl border-2 p-5 transition-all duration-200",
-                  livingType === opt.value
-                    ? "border-primary bg-accent shadow-card"
-                    : "border-border bg-card hover:border-primary/30"
-                )}
-              >
-                <div
-                  className={cn(
-                    "flex h-12 w-12 items-center justify-center rounded-xl transition-colors",
-                    livingType === opt.value
-                      ? "gradient-primary"
-                      : "bg-muted"
-                  )}
-                >
-                  <opt.icon
-                    className={cn(
-                      "h-6 w-6",
-                      livingType === opt.value
-                        ? "text-primary-foreground"
-                        : "text-muted-foreground"
-                    )}
-                  />
-                </div>
-                <span className="font-semibold text-foreground">
-                  {opt.label}
-                </span>
-              </button>
-            ))}
+        <div className="w-full max-w-sm animate-fade-in">
+          {/* Header */}
+          <div className="mb-8 text-center">
+            <img
+              src={logo}
+              alt="TIPIDPAY"
+              width={48}
+              height={48}
+              className="mx-auto mb-4 drop-shadow-md"
+            />
+            <h2 className="text-2xl font-bold text-foreground">
+              Welcome to TIPIDPAY!
+            </h2>
+            <p className="mt-1 text-muted-foreground">
+              Let's personalize your experience
+            </p>
           </div>
 
-          {/* Group actions (shown when roommates selected) */}
-          {livingType === "roommates" && (
-            <div className="mt-6 space-y-3 animate-fade-in">
-              <p className="text-sm font-medium text-foreground">
+          {/* Question */}
+          <p className="mb-4 text-sm font-medium text-foreground text-center">
+            Do you live alone or with friends / roommates?
+          </p>
+
+          {/* Selection cards */}
+          <div className="space-y-3">
+            {livingOptions.map((opt) => {
+              const selected = livingType === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setLivingType(opt.value)}
+                  className={cn(
+                    "flex w-full items-center gap-4 rounded-2xl border-2 p-5 text-left transition-all duration-200",
+                    selected
+                      ? "border-primary bg-accent shadow-card scale-[1.02]"
+                      : "border-border bg-card hover:border-primary/30 hover:shadow-sm"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors duration-200",
+                      selected ? "gradient-primary" : "bg-muted"
+                    )}
+                  >
+                    <opt.icon
+                      className={cn(
+                        "h-6 w-6 transition-colors duration-200",
+                        selected ? "text-primary-foreground" : "text-muted-foreground"
+                      )}
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="block font-semibold text-foreground">
+                      {opt.label}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {opt.description}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Group actions for roommate options */}
+          {(livingType === "few" || livingType === "many") && (
+            <div className="mt-5 space-y-3 animate-fade-in">
+              <p className="text-sm font-medium text-foreground text-center">
                 Set up your group
               </p>
               <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  size="default"
-                  className="flex-1"
-                  onClick={() => navigate("/dashboard")}
-                >
+                <Button variant="outline" size="default" className="flex-1" onClick={() => navigate("/dashboard")}>
                   <UserPlus className="mr-1 h-4 w-4" /> Create Group
                 </Button>
-                <Button
-                  variant="outline"
-                  size="default"
-                  className="flex-1"
-                  onClick={() => navigate("/dashboard")}
-                >
+                <Button variant="outline" size="default" className="flex-1" onClick={() => navigate("/dashboard")}>
                   <LogIn className="mr-1 h-4 w-4" /> Join Group
                 </Button>
               </div>
             </div>
           )}
 
+          {/* Continue */}
           <Button
             variant="hero"
             size="lg"
@@ -213,6 +221,11 @@ export default function Onboarding() {
           >
             Continue <ArrowRight className="ml-1 h-4 w-4" />
           </Button>
+
+          {/* Footer tip */}
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            This helps us suggest the best way to split bills and manage payments
+          </p>
         </div>
       </div>
     </div>
