@@ -2,6 +2,7 @@ import { Bell, TrendingUp, TrendingDown, ArrowRight, Zap, CreditCard, Users, Lig
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { currentUser, totalBill, predictedBill, monthlyBills, alerts, formatPeso } from "@/lib/data";
+import { useUser } from "@/lib/userStore";
 import { LineChart, Line, ResponsiveContainer, XAxis, Tooltip } from "recharts";
 import { usageTrends } from "@/lib/data";
 
