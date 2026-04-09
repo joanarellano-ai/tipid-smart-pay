@@ -1,4 +1,4 @@
-import { Bell, TrendingUp, TrendingDown, ArrowRight, Zap, CreditCard, Users, Lightbulb, AlertTriangle } from "lucide-react";
+import { Bell, TrendingUp, TrendingDown, ArrowRight, Zap, CreditCard, Users, Lightbulb, AlertTriangle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { currentUser, totalBill, predictedBill, monthlyBills, alerts, formatPeso } from "@/lib/data";
@@ -59,11 +59,12 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="mb-5 grid grid-cols-3 gap-3 animate-fade-in" style={{ animationDelay: "0.15s" }}>
+        <div className="mb-5 grid grid-cols-4 gap-3 animate-fade-in" style={{ animationDelay: "0.15s" }}>
           {[
             { icon: CreditCard, label: "Pay Bill", path: "/wallet" },
             { icon: Users, label: "Split Bill", path: "/bills" },
             { icon: Zap, label: "Add Bill", path: "/utilities" },
+            { icon: Clock, label: "Reminders", path: "/reminders" },
           ].map((a) => (
             <button
               key={a.label}
