@@ -83,7 +83,7 @@ export default function SignUp() {
       <div className="w-full max-w-sm animate-scale-in">
         {/* Back */}
         <button
-          onClick={() => navigate("/welcome")}}
+          onClick={() => navigate("/welcome")}
           className="mb-6 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" /> Back
