@@ -12,6 +12,8 @@ import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import Utilities from "./pages/Utilities";
 import WalletPage from "./pages/WalletPage";
+import PaymentMethods from "./pages/PaymentMethods";
+import Reminders from "./pages/Reminders";
 import SharedBills from "./pages/SharedBills";
 import Analytics from "./pages/Analytics";
 import Profile from "./pages/Profile";
@@ -37,6 +39,8 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/utilities" element={<Utilities />} />
             <Route path="/wallet" element={<WalletPage />} />
+            <Route path="/payment-methods" element={<PaymentMethods />} />
+            <Route path="/reminders" element={<Reminders />} />
             <Route path="/bills" element={<SharedBills />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/profile" element={<Profile />} />
