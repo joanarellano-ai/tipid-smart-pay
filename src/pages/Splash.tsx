@@ -4,12 +4,23 @@ import logo from "@/assets/tipidpay-logo.png";
 
 export default function Splash() {
   const navigate = useNavigate();
+  const [progress, setProgress] = useState(0);
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
-    const fadeTimer = setTimeout(() => setFading(true), 2000);
-    const navTimer = setTimeout(() => navigate("/welcome"), 2700);
+    // Animate progress bar over ~2.5s
+    const interval = setInterval(() => {
+      setProgress((p) => {
+        if (p >= 100) { clearInterval(interval); return 100; }
+        return p + 2;
+      });
+    }, 50);
+
+    const fadeTimer = setTimeout(() => setFading(true), 2800);
+    const navTimer = setTimeout(() => navigate("/welcome"), 3500);
+
     return () => {
+      clearInterval(interval);
       clearTimeout(fadeTimer);
       clearTimeout(navTimer);
     };
@@ -24,17 +35,20 @@ export default function Splash() {
         <img
           src={logo}
           alt="TIPIDPAY logo"
-          width={100}
-          height={100}
-          className="mb-5 drop-shadow-lg"
+          width={110}
+          height={110}
+          className="mb-6 drop-shadow-lg"
         />
-        <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-8">
+        <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-10">
           TIPIDPAY
         </h1>
-        <div className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0s" }} />
-          <span className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0.15s" }} />
-          <span className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0.3s" }} />
+
+        {/* Progress bar */}
+        <div className="w-40 h-1 rounded-full bg-border overflow-hidden">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-100 ease-linear"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </div>
     </div>
