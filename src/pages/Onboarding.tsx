@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { accountStore } from "@/lib/accountStore";
+import { toast } from "sonner";
 import {
   BarChart3,
   Brain,
@@ -217,7 +219,12 @@ export default function Onboarding() {
             size="lg"
             className="mt-8 w-full"
             disabled={!livingType}
-            onClick={() => navigate("/dashboard")}
+            onClick={() => {
+              const mode = livingType === "alone" ? "solo" : "group";
+              accountStore.setMode(mode);
+              toast.success(mode === "solo" ? "Solo mode activated" : "Group mode activated");
+              navigate("/dashboard");
+            }}
           >
             Continue <ArrowRight className="ml-1 h-4 w-4" />
           </Button>
