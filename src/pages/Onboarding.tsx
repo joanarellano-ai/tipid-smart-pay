@@ -203,10 +203,19 @@ export default function Onboarding() {
                 Set up your group
               </p>
               <div className="flex gap-3">
-                <Button variant="outline" size="default" className="flex-1" onClick={() => navigate("/dashboard")}>
+                <Button variant="outline" size="default" className="flex-1" onClick={() => {
+                  accountStore.setMode("group");
+                  accountStore.setGroupName("My Group");
+                  toast.success("Group created");
+                  navigate("/dashboard");
+                }}>
                   <UserPlus className="mr-1 h-4 w-4" /> Create Group
                 </Button>
-                <Button variant="outline" size="default" className="flex-1" onClick={() => navigate("/dashboard")}>
+                <Button variant="outline" size="default" className="flex-1" onClick={() => {
+                  accountStore.setMode("group");
+                  toast.success("Joined group");
+                  navigate("/dashboard");
+                }}>
                   <LogIn className="mr-1 h-4 w-4" /> Join Group
                 </Button>
               </div>
