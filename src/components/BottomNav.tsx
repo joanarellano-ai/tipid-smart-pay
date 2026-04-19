@@ -1,17 +1,22 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, BarChart3, Wallet, Users, User } from "lucide-react";
+import { Home, BarChart3, Wallet, Users, User, History } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const navItems = [
-  { path: "/dashboard", icon: Home, label: "Home" },
-  { path: "/utilities", icon: BarChart3, label: "Utilities" },
-  { path: "/wallet", icon: Wallet, label: "Wallet" },
-  { path: "/bills", icon: Users, label: "Bills" },
-  { path: "/profile", icon: User, label: "Profile" },
-];
+import { useAccount } from "@/lib/accountStore";
 
 export default function BottomNav() {
   const { pathname } = useLocation();
+  const account = useAccount();
+  const isSolo = account.mode === "solo";
+
+  const navItems = [
+    { path: "/dashboard", icon: Home, label: "Home" },
+    { path: "/utilities", icon: BarChart3, label: "Utilities" },
+    { path: "/wallet", icon: Wallet, label: "Wallet" },
+    isSolo
+      ? { path: "/bill-history", icon: History, label: "History" }
+      : { path: "/bills", icon: Users, label: "Bills" },
+    { path: "/profile", icon: User, label: "Profile" },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/80 backdrop-blur-xl safe-area-bottom">
