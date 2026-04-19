@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { accountStore } from "@/lib/accountStore";
+import { toast } from "sonner";
 import {
   BarChart3,
   Brain,
@@ -201,10 +203,19 @@ export default function Onboarding() {
                 Set up your group
               </p>
               <div className="flex gap-3">
-                <Button variant="outline" size="default" className="flex-1" onClick={() => navigate("/dashboard")}>
+                <Button variant="outline" size="default" className="flex-1" onClick={() => {
+                  accountStore.setMode("group");
+                  accountStore.setGroupName("My Group");
+                  toast.success("Group created");
+                  navigate("/dashboard");
+                }}>
                   <UserPlus className="mr-1 h-4 w-4" /> Create Group
                 </Button>
-                <Button variant="outline" size="default" className="flex-1" onClick={() => navigate("/dashboard")}>
+                <Button variant="outline" size="default" className="flex-1" onClick={() => {
+                  accountStore.setMode("group");
+                  toast.success("Joined group");
+                  navigate("/dashboard");
+                }}>
                   <LogIn className="mr-1 h-4 w-4" /> Join Group
                 </Button>
               </div>
@@ -217,7 +228,12 @@ export default function Onboarding() {
             size="lg"
             className="mt-8 w-full"
             disabled={!livingType}
-            onClick={() => navigate("/dashboard")}
+            onClick={() => {
+              const mode = livingType === "alone" ? "solo" : "group";
+              accountStore.setMode(mode);
+              toast.success(mode === "solo" ? "Solo mode activated" : "Group mode activated");
+              navigate("/dashboard");
+            }}
           >
             Continue <ArrowRight className="ml-1 h-4 w-4" />
           </Button>

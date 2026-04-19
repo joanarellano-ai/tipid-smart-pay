@@ -17,6 +17,7 @@ import Reminders from "./pages/Reminders";
 import SharedBills from "./pages/SharedBills";
 import Analytics from "./pages/Analytics";
 import Profile from "./pages/Profile";
+import BillHistory from "./pages/BillHistory";
 import AppShell from "./components/AppShell";
 import NotFound from "./pages/NotFound";
 
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/bills" element={<SharedBills />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/bill-history" element={<BillHistory />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
