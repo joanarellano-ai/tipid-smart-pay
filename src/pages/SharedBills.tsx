@@ -94,7 +94,11 @@ export default function SharedBills() {
                   <span className="flex items-center gap-1 rounded-lg bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning">
                     <Clock className="h-3 w-3" /> Pending
                   </span>
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all hover:shadow-md active:scale-95">
+                  <button
+                    onClick={() => toast.success(`Reminder sent to ${r.name}`)}
+                    aria-label={`Send reminder to ${r.name}`}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all hover:shadow-md active:scale-95"
+                  >
                     <Send className="h-3.5 w-3.5" />
                   </button>
                 </div>

@@ -1,26 +1,65 @@
 import { useState } from "react";
 import { currentUser, badges } from "@/lib/data";
-import { useUser } from "@/lib/userStore";
-import { ChevronRight, Moon, Sun, Bell, Shield, HelpCircle, LogOut } from "lucide-react";
+import { useUser, userStore } from "@/lib/userStore";
+import { useAccount, accountStore } from "@/lib/accountStore";
+import { ChevronRight, Moon, Sun, Bell, Shield, HelpCircle, LogOut, Edit3, Users, Home as HomeIcon, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 export default function Profile() {
   const navigate = useNavigate();
   const user = useUser();
+  const account = useAccount();
   const displayName = user.fullName || currentUser.name;
   const [dark, setDark] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [draftName, setDraftName] = useState(displayName);
+  const [draftEmail, setDraftEmail] = useState(user.email || "user@tipidpay.ph");
+  const [modeOpen, setModeOpen] = useState(false);
 
   const toggleDark = () => {
     setDark(!dark);
     document.documentElement.classList.toggle("dark");
+    toast.success(dark ? "Light mode enabled" : "Dark mode enabled");
   };
 
+  const saveProfile = () => {
+    if (!draftName.trim()) {
+      toast.error("Name cannot be empty");
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(draftEmail)) {
+      toast.error("Enter a valid email");
+      return;
+    }
+    userStore.set({ fullName: draftName.trim(), email: draftEmail.trim() });
+    toast.success("Profile updated");
+    setEditOpen(false);
+  };
+
+  const switchMode = (newMode: "solo" | "group") => {
+    accountStore.setMode(newMode);
+    toast.success(newMode === "solo" ? "Switched to Solo Mode" : "Switched to Group Mode");
+    setModeOpen(false);
+    if (newMode === "group") navigate("/bills");
+    else navigate("/dashboard");
+  };
+
+  const isSolo = account.mode === "solo";
+
   const menuItems = [
-    { icon: Bell, label: "Notifications", action: () => {} },
-    { icon: Shield, label: "Security", action: () => {} },
-    { icon: HelpCircle, label: "Help & Support", action: () => {} },
-    { icon: LogOut, label: "Log Out", action: () => navigate("/"), destructive: true },
+    { icon: Edit3, label: "Edit Profile", action: () => setEditOpen(true) },
+    { icon: isSolo ? Users : HomeIcon, label: `Switch to ${isSolo ? "Group" : "Solo"} Mode`, action: () => setModeOpen(true) },
+    { icon: History, label: "Bill History", action: () => navigate("/bill-history") },
+    { icon: Bell, label: "Reminders", action: () => navigate("/reminders") },
+    { icon: Shield, label: "Security", action: () => toast.info("Security settings coming soon") },
+    { icon: HelpCircle, label: "Help & Support", action: () => toast.info("Reach us at help@tipidpay.ph") },
+    { icon: LogOut, label: "Log Out", action: () => { toast.success("Logged out"); navigate("/"); }, destructive: true },
   ];
 
   return (
@@ -33,10 +72,16 @@ export default function Profile() {
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary text-xl font-bold text-primary-foreground">
             {displayName.split(" ").map((n) => n[0]).join("")}
           </div>
-          <div>
-            <h2 className="text-lg font-bold text-foreground">{displayName}</h2>
-            <p className="text-sm text-muted-foreground">{currentUser.groupName}</p>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-bold text-foreground truncate">{displayName}</h2>
+            <p className="text-sm text-muted-foreground truncate">{user.email || "user@tipidpay.ph"}</p>
+            <span className="mt-1 inline-block rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
+              {isSolo ? "🏠 Solo Mode" : `👥 ${account.groupName}`}
+            </span>
           </div>
+          <Button variant="ghost" size="icon" onClick={() => setEditOpen(true)} aria-label="Edit profile">
+            <Edit3 className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Badges */}
@@ -91,6 +136,49 @@ export default function Profile() {
           ))}
         </div>
       </div>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogDescription>Update your name and email</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div>
+              <Label>Full Name</Label>
+              <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} maxLength={60} className="rounded-xl" />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input type="email" value={draftEmail} onChange={(e) => setDraftEmail(e.target.value)} maxLength={120} className="rounded-xl" />
+            </div>
+            <Button className="w-full rounded-xl" onClick={saveProfile}>Save Changes</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Switch Mode Dialog */}
+      <Dialog open={modeOpen} onOpenChange={setModeOpen}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Switch Account Mode</DialogTitle>
+            <DialogDescription>
+              {isSolo
+                ? "Switch to Group Mode to share bills with roommates. Your personal data will be kept."
+                : "Switch to Solo Mode to manage only your own bills. Your shared bills will remain accessible if you switch back."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 pt-2">
+            <Button className="w-full rounded-xl" onClick={() => switchMode(isSolo ? "group" : "solo")}>
+              Confirm switch to {isSolo ? "Group" : "Solo"} Mode
+            </Button>
+            <Button variant="ghost" className="w-full rounded-xl" onClick={() => setModeOpen(false)}>
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
