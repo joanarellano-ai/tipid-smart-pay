@@ -2,19 +2,30 @@ import { useState } from "react";
 import { monthlyBills, usageTrends, formatPeso } from "@/lib/data";
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, LineChart, Line, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { History } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const categories = ["All", "Electricity", "Water", "Internet"];
 
 export default function Utilities() {
   const [active, setActive] = useState("All");
+  const navigate = useNavigate();
 
   const filtered = active === "All" ? monthlyBills : monthlyBills.filter((b) => b.category === active);
 
   return (
     <div className="px-4 pt-14 pb-4">
       <div className="mx-auto max-w-lg">
-        <h1 className="mb-1 text-xl font-bold text-foreground animate-fade-in">Utility Tracking</h1>
-        <p className="mb-5 text-sm text-muted-foreground animate-fade-in">Monitor your consumption</p>
+        <div className="mb-5 flex items-start justify-between animate-fade-in">
+          <div>
+            <h1 className="mb-1 text-xl font-bold text-foreground">Utility Tracking</h1>
+            <p className="text-sm text-muted-foreground">Monitor your consumption</p>
+          </div>
+          <Button variant="soft" size="sm" onClick={() => navigate("/bill-history")}>
+            <History className="mr-1 h-4 w-4" /> History
+          </Button>
+        </div>
 
         {/* Category Tabs */}
         <div className="mb-5 flex gap-2 overflow-x-auto scrollbar-hide animate-fade-in" style={{ animationDelay: "0.05s" }}>
