@@ -1,15 +1,60 @@
-import { Bell, TrendingUp, TrendingDown, ArrowRight, Zap, CreditCard, Users, Lightbulb, AlertTriangle, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { TrendingUp, TrendingDown, ArrowRight, Zap, CreditCard, Users, Lightbulb, AlertTriangle, Clock, Sparkles, History } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { currentUser, totalBill, predictedBill, monthlyBills, alerts, formatPeso } from "@/lib/data";
+import { currentUser, formatPeso, alerts } from "@/lib/data";
 import { useUser } from "@/lib/userStore";
+import { useAccount } from "@/lib/accountStore";
+import { billHistoryStore, useBillHistory, getUtilityMeta } from "@/lib/billHistoryStore";
 import { LineChart, Line, ResponsiveContainer, XAxis, Tooltip } from "recharts";
-import { usageTrends } from "@/lib/data";
+import NotificationBell from "@/components/NotificationBell";
+import { useMemo } from "react";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const user = useUser();
+  const account = useAccount();
+  const entries = useBillHistory();
   const displayName = user.fullName || currentUser.name;
+  const isSolo = account.mode === "solo";
+
+  // Compute current month total from latest entries + predictions
+  const { thisMonthTotal, predictions, chartData } = useMemo(() => {
+    const preds = billHistoryStore.predictAll();
+    const latestByUtil = (["electricity", "water", "internet"] as const).map((u) => {
+      const rows = billHistoryStore.getByUtility(u);
+      return rows[rows.length - 1];
+    }).filter(Boolean);
+    const total = latestByUtil.reduce((s, e) => s + e.amount, 0);
+
+    // Build chart data from history months
+    const months = ["Jan", "Feb", "Mar"];
+    const chart = months.map((m, idx) => {
+      const e = entries.filter((x) => x.monthIndex === idx);
+      return {
+        month: m,
+        electricity: e.find((x) => x.utility === "electricity")?.amount ?? 0,
+        water: e.find((x) => x.utility === "water")?.amount ?? 0,
+      };
+    });
+    return { thisMonthTotal: total, predictions: preds, chartData: chart };
+  }, [entries]);
+
+  const totalPredicted = predictions.reduce((s, p) => s + p.predictedAmount, 0);
+  const avgConfidence = Math.round(predictions.reduce((s, p) => s + p.confidence, 0) / predictions.length);
+  const trend = thisMonthTotal > 0 ? Math.round(((totalPredicted - thisMonthTotal) / thisMonthTotal) * 100) : 0;
+
+  const quickActions = isSolo
+    ? [
+        { icon: CreditCard, label: "Pay Bill", path: "/wallet" },
+        { icon: History, label: "History", path: "/bill-history" },
+        { icon: Zap, label: "Utilities", path: "/utilities" },
+        { icon: Clock, label: "Reminders", path: "/reminders" },
+      ]
+    : [
+        { icon: CreditCard, label: "Pay Bill", path: "/wallet" },
+        { icon: Users, label: "Split Bill", path: "/bills" },
+        { icon: Zap, label: "Utilities", path: "/utilities" },
+        { icon: Clock, label: "Reminders", path: "/reminders" },
+      ];
 
   return (
     <div className="px-4 pt-14 pb-4">
@@ -19,11 +64,11 @@ export default function Dashboard() {
           <div>
             <p className="text-sm text-muted-foreground">Good morning,</p>
             <h1 className="text-xl font-bold text-foreground">{displayName.split(" ")[0]} 👋</h1>
+            <span className="mt-1 inline-block rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
+              {isSolo ? "🏠 Solo Mode" : `👥 ${account.groupName}`}
+            </span>
           </div>
-          <button className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-card">
-            <Bell className="h-5 w-5 text-foreground" />
-            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background" />
-          </button>
+          <NotificationBell />
         </div>
 
         {/* Alerts */}
@@ -43,29 +88,27 @@ export default function Dashboard() {
 
         {/* Total Bill Card */}
         <div className="mb-5 rounded-2xl gradient-primary p-6 shadow-lg animate-fade-in" style={{ animationDelay: "0.1s" }}>
-          <p className="mb-1 text-sm text-primary-foreground/70">Total Monthly Bill</p>
+          <p className="mb-1 text-sm text-primary-foreground/70">This Month's Total</p>
           <p className="mb-4 text-3xl font-extrabold text-primary-foreground animate-count-up">
-            {formatPeso(totalBill)}
+            {formatPeso(thisMonthTotal)}
           </p>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1 rounded-lg bg-primary-foreground/15 px-2.5 py-1 text-xs text-primary-foreground">
-              <TrendingUp className="h-3 w-3" />
-              AI Predicted: {formatPeso(predictedBill.amount)} (+{predictedBill.change}%)
-            </div>
+            <button
+              onClick={() => navigate("/bill-history")}
+              className="flex items-center gap-1 rounded-lg bg-primary-foreground/15 px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary-foreground/25 transition-colors"
+            >
+              <Sparkles className="h-3 w-3" />
+              Predicted: {formatPeso(totalPredicted)} ({trend >= 0 ? "+" : ""}{trend}%)
+            </button>
             <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 text-[10px] text-primary-foreground">
-              {predictedBill.confidence}% confidence
+              {avgConfidence}% confidence
             </span>
           </div>
         </div>
 
         {/* Quick Actions */}
         <div className="mb-5 grid grid-cols-4 gap-3 animate-fade-in" style={{ animationDelay: "0.15s" }}>
-          {[
-            { icon: CreditCard, label: "Pay Bill", path: "/wallet" },
-            { icon: Users, label: "Split Bill", path: "/bills" },
-            { icon: Zap, label: "Add Bill", path: "/utilities" },
-            { icon: Clock, label: "Reminders", path: "/reminders" },
-          ].map((a) => (
+          {quickActions.map((a) => (
             <button
               key={a.label}
               onClick={() => navigate(a.path)}
@@ -88,7 +131,7 @@ export default function Dashboard() {
             </button>
           </div>
           <ResponsiveContainer width="100%" height={140}>
-            <LineChart data={usageTrends}>
+            <LineChart data={chartData}>
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(215, 16%, 47%)" }} />
               <Tooltip
                 contentStyle={{
@@ -106,20 +149,35 @@ export default function Dashboard() {
 
         {/* Bills Breakdown */}
         <div className="space-y-3 animate-fade-in" style={{ animationDelay: "0.25s" }}>
-          <h3 className="font-semibold text-foreground">This Month's Bills</h3>
-          {monthlyBills.map((bill) => (
-            <div key={bill.category} className="flex items-center gap-4 rounded-2xl bg-card p-4 shadow-card">
-              <span className="text-2xl">{bill.icon}</span>
-              <div className="flex-1">
-                <p className="font-medium text-foreground">{bill.category}</p>
-                <p className="text-sm text-muted-foreground">{formatPeso(bill.amount)}</p>
-              </div>
-              <div className={`flex items-center gap-1 text-xs font-medium ${bill.trend > 0 ? "text-destructive" : bill.trend < 0 ? "text-primary" : "text-muted-foreground"}`}>
-                {bill.trend > 0 ? <TrendingUp className="h-3 w-3" /> : bill.trend < 0 ? <TrendingDown className="h-3 w-3" /> : null}
-                {bill.trend > 0 ? "+" : ""}{bill.trend}%
-              </div>
-            </div>
-          ))}
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-foreground">This Month's Bills</h3>
+            <button onClick={() => navigate("/bill-history")} className="text-xs text-primary hover:underline">
+              History →
+            </button>
+          </div>
+          {predictions.map((p) => {
+            const meta = getUtilityMeta(p.utility);
+            const rows = billHistoryStore.getByUtility(p.utility);
+            const latest = rows[rows.length - 1];
+            const trend = p.trendPercent;
+            return (
+              <button
+                key={p.utility}
+                onClick={() => navigate("/bill-history")}
+                className="flex w-full items-center gap-4 rounded-2xl bg-card p-4 shadow-card transition-all hover:shadow-soft active:scale-[0.99]"
+              >
+                <span className="text-2xl">{meta.icon}</span>
+                <div className="flex-1 text-left">
+                  <p className="font-medium text-foreground">{meta.label}</p>
+                  <p className="text-sm text-muted-foreground">{formatPeso(latest?.amount ?? 0)}</p>
+                </div>
+                <div className={`flex items-center gap-1 text-xs font-medium ${trend > 0 ? "text-destructive" : trend < 0 ? "text-primary" : "text-muted-foreground"}`}>
+                  {trend > 0 ? <TrendingUp className="h-3 w-3" /> : trend < 0 ? <TrendingDown className="h-3 w-3" /> : null}
+                  {trend > 0 ? "+" : ""}{trend}%
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
