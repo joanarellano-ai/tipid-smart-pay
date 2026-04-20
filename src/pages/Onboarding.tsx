@@ -113,7 +113,10 @@ export default function Onboarding() {
             </Button>
 
             <button
-              onClick={() => navigate("/dashboard")}
+              onClick={() => {
+                const next = localStorage.getItem("tipidpay_new_user") === "1" ? "/bill-survey" : "/dashboard";
+                navigate(next);
+              }}
               className="mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               Skip
@@ -207,14 +210,16 @@ export default function Onboarding() {
                   accountStore.setMode("group");
                   accountStore.setGroupName("My Group");
                   toast.success("Group created");
-                  navigate("/dashboard");
+                  const next = localStorage.getItem("tipidpay_new_user") === "1" ? "/bill-survey" : "/dashboard";
+                  navigate(next);
                 }}>
                   <UserPlus className="mr-1 h-4 w-4" /> Create Group
                 </Button>
                 <Button variant="outline" size="default" className="flex-1" onClick={() => {
                   accountStore.setMode("group");
                   toast.success("Joined group");
-                  navigate("/dashboard");
+                  const next = localStorage.getItem("tipidpay_new_user") === "1" ? "/bill-survey" : "/dashboard";
+                  navigate(next);
                 }}>
                   <LogIn className="mr-1 h-4 w-4" /> Join Group
                 </Button>
@@ -232,7 +237,8 @@ export default function Onboarding() {
               const mode = livingType === "alone" ? "solo" : "group";
               accountStore.setMode(mode);
               toast.success(mode === "solo" ? "Solo mode activated" : "Group mode activated");
-              navigate("/dashboard");
+              const next = localStorage.getItem("tipidpay_new_user") === "1" ? "/bill-survey" : "/dashboard";
+              navigate(next);
             }}
           >
             Continue <ArrowRight className="ml-1 h-4 w-4" />
