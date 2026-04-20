@@ -18,6 +18,7 @@ import SharedBills from "./pages/SharedBills";
 import Analytics from "./pages/Analytics";
 import Profile from "./pages/Profile";
 import BillHistory from "./pages/BillHistory";
+import BillSurvey from "./pages/BillSurvey";
 import AppShell from "./components/AppShell";
 import NotFound from "./pages/NotFound";
 
