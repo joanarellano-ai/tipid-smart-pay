@@ -22,3 +22,4 @@ Account has SOLO/GROUP modes (accountStore) — solo hides bill-splitting; toggl
 - [Persistence Strategy](mem://technical/persistence) — Client-side localStorage and reactive store pattern for MVP state
 - [Account Modes](mem://features/account-modes) — Solo vs Group mode toggle with persisted state and UI gating
 - [Bill Prediction](mem://features/bill-prediction) — 3-month history-based forecasting per utility with confidence + due date
+- [Split Bills](mem://features/split-bills) — Multi-method splits (equal/shares/exact/items) for trips, family, dining at /splits
