@@ -26,7 +26,10 @@ export default function SharedBills() {
               Bill splitting is disabled. Switch to Group Mode to share bills with roommates.
             </p>
             <div className="flex flex-col gap-2">
-              <Button onClick={() => navigate("/profile")} className="w-full">
+              <Button onClick={() => navigate("/splits")} className="w-full">
+                <HomeIcon className="mr-1 h-4 w-4" /> Split a trip or family expense
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/profile")} className="w-full">
                 Switch to Group Mode
               </Button>
               <Button variant="ghost" onClick={() => navigate("/bill-history")} className="w-full">
