@@ -1,6 +1,6 @@
 import { roommates, totalBill, formatPeso, currentUser } from "@/lib/data";
 import { cn } from "@/lib/utils";
-import { Send, UserPlus, Check, Clock, Home as HomeIcon } from "lucide-react";
+import { Send, UserPlus, Check, Clock, Home as HomeIcon, Plane } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAccount } from "@/lib/accountStore";
 import { useNavigate } from "react-router-dom";
@@ -26,7 +26,10 @@ export default function SharedBills() {
               Bill splitting is disabled. Switch to Group Mode to share bills with roommates.
             </p>
             <div className="flex flex-col gap-2">
-              <Button onClick={() => navigate("/profile")} className="w-full">
+              <Button onClick={() => navigate("/splits")} className="w-full">
+                <HomeIcon className="mr-1 h-4 w-4" /> Split a trip or family expense
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/profile")} className="w-full">
                 Switch to Group Mode
               </Button>
               <Button variant="ghost" onClick={() => navigate("/bill-history")} className="w-full">
@@ -47,9 +50,14 @@ export default function SharedBills() {
             <h1 className="text-xl font-bold text-foreground">Shared Bills</h1>
             <p className="text-sm text-muted-foreground">{account.groupName || currentUser.groupName}</p>
           </div>
-          <Button size="sm" variant="soft" onClick={() => toast.success("Invite link copied to clipboard!")}>
-            <UserPlus className="mr-1 h-4 w-4" /> Invite
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => navigate("/splits")}>
+              <Plane className="mr-1 h-4 w-4" /> Trips & more
+            </Button>
+            <Button size="sm" variant="soft" onClick={() => toast.success("Invite link copied to clipboard!")}>
+              <UserPlus className="mr-1 h-4 w-4" /> Invite
+            </Button>
+          </div>
         </div>
 
         {/* Split Summary */}
