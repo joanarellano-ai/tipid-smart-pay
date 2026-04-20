@@ -45,7 +45,20 @@ function loadState(): WalletState {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch {}
+  // New users start with a clean slate (no balance, no transactions, no reminders)
+  if (localStorage.getItem("tipidpay_new_user") === "1") {
+    return getEmptyState();
+  }
   return getDefaultState();
+}
+
+function getEmptyState(): WalletState {
+  return {
+    balance: 0,
+    paymentMethods: [],
+    transactions: [],
+    reminders: [],
+  };
 }
 
 function getDefaultState(): WalletState {

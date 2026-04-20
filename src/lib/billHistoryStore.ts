@@ -94,6 +94,10 @@ function load(): BillEntry[] {
     const s = localStorage.getItem(STORAGE_KEY);
     if (s) return JSON.parse(s);
   } catch {}
+  // New users start with no bill history — they enter their own usage data
+  if (localStorage.getItem("tipidpay_new_user") === "1") {
+    return [];
+  }
   return seedHistory();
 }
 
