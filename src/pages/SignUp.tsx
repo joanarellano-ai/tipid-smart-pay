@@ -67,12 +67,17 @@ export default function SignUp() {
     if (!isValid) return;
 
     setLoading(true);
+    // Mark as new user BEFORE stores initialize so wallet & bill history start empty
+    localStorage.setItem("tipidpay_new_user", "1");
+    localStorage.removeItem("tipidpay_wallet");
+    localStorage.removeItem("tipidpay_bill_history");
+
     // Simulate network request
     await new Promise((r) => setTimeout(r, 1500));
 
     userStore.set({ fullName: fullName.trim(), email: email.trim() });
     setLoading(false);
-    toast.success("Account created successfully!", { description: `Welcome, ${fullName.trim()}!` });
+    toast.success("Account created successfully!", { description: `Welcome, ${fullName.trim()}! Your wallet starts at ₱0.` });
     navigate("/onboarding");
   };
 
