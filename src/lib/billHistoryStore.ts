@@ -191,6 +191,10 @@ export const billHistoryStore = {
     entries = entries.map((e) => (e.id === id ? { ...e, ...patch } : e));
     emit();
   },
+  replaceAll(next: BillEntry[]) {
+    entries = next;
+    emit();
+  },
   resetSeed() {
     entries = seedHistory();
     emit();

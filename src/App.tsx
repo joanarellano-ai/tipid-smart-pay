@@ -18,6 +18,7 @@ import SharedBills from "./pages/SharedBills";
 import Analytics from "./pages/Analytics";
 import Profile from "./pages/Profile";
 import BillHistory from "./pages/BillHistory";
+import BillSurvey from "./pages/BillSurvey";
 import AppShell from "./components/AppShell";
 import NotFound from "./pages/NotFound";
 
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/bill-survey" element={<BillSurvey />} />
           <Route element={<AppShell />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/utilities" element={<Utilities />} />
