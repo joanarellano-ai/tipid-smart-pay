@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Plane, Home as HomeIcon, Users, Utensils, ShoppingBag, Tag, Check, Clock, Trash2, ArrowLeft, Send } from "lucide-react";
+import { Plus, Plane, Home as HomeIcon, Users, Utensils, ShoppingBag, Tag, Check, Clock, Trash2, ArrowLeft, Send, UserPlus, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import {
   splitStore,
   useSplits,
   computeOwed,
+  computeRemaining,
   newId,
   type SplitBill,
   type SplitCategory,
