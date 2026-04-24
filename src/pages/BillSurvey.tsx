@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { billHistoryStore, getUtilityMeta, type BillEntry, type Utility } from "@/lib/billHistoryStore";
 import { toast } from "sonner";
-import { ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, CheckCircle2, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import logo from "@/assets/tipidpay-logo.png";
 
 /* ── Build the 3 most recent month labels (oldest → newest) ── */
@@ -43,6 +44,8 @@ type StepData = { rows: Row[]; dueDay: string };
 export default function BillSurvey() {
   const navigate = useNavigate();
   const months = useMemo(lastThreeMonths, []);
+  // Gate: does the user actually pay their own utility bills?
+  const [paysBills, setPaysBills] = useState<boolean | null>(null);
   const [step, setStep] = useState(0); // 0,1,2 = utilities, 3 = review
   const totalSteps = utilities.length + 1;
 
