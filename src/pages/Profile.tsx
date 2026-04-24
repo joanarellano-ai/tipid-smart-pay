@@ -2,7 +2,7 @@ import { useState } from "react";
 import { currentUser, badges } from "@/lib/data";
 import { useUser, userStore } from "@/lib/userStore";
 import { useAccount, accountStore } from "@/lib/accountStore";
-import { ChevronRight, Moon, Sun, Bell, Shield, HelpCircle, LogOut, Edit3, Users, Home as HomeIcon, History } from "lucide-react";
+import { ChevronRight, Moon, Sun, Bell, Shield, HelpCircle, LogOut, Edit3, Users, Home as HomeIcon, History, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,7 @@ export default function Profile() {
     { icon: Edit3, label: "Edit Profile", action: () => setEditOpen(true) },
     { icon: isSolo ? Users : HomeIcon, label: `Switch to ${isSolo ? "Group" : "Solo"} Mode`, action: () => setModeOpen(true) },
     { icon: History, label: "Bill History", action: () => navigate("/bill-history") },
+    { icon: ClipboardList, label: "Update Bill Survey", action: () => navigate("/bill-survey") },
     { icon: Bell, label: "Reminders", action: () => navigate("/reminders") },
     { icon: Shield, label: "Security", action: () => toast.info("Security settings coming soon") },
     { icon: HelpCircle, label: "Help & Support", action: () => toast.info("Reach us at help@tipidpay.ph") },

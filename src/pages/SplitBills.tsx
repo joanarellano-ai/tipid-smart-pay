@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Plane, Home as HomeIcon, Users, Utensils, ShoppingBag, Tag, Check, Clock, Trash2, ArrowLeft, Send } from "lucide-react";
+import { Plus, Plane, Home as HomeIcon, Users, Utensils, ShoppingBag, Tag, Check, Clock, Trash2, ArrowLeft, Send, UserPlus, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import {
   splitStore,
   useSplits,
   computeOwed,
+  computeRemaining,
   newId,
   type SplitBill,
   type SplitCategory,
@@ -261,6 +262,7 @@ function CreateSplitDialog({
 
 function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) {
   const owed = useMemo(() => computeOwed(bill), [bill]);
+  const remaining = useMemo(() => computeRemaining(bill), [bill]);
   const meta = CATEGORY_META[bill.category];
   const Icon = meta.icon;
   const sumOwed = Object.values(owed).reduce((s, v) => s + v, 0);
@@ -270,6 +272,9 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
   const [itemLabel, setItemLabel] = useState("");
   const [itemAmount, setItemAmount] = useState("");
   const [itemSharedBy, setItemSharedBy] = useState<string[]>([]);
+  const [newName, setNewName] = useState("");
+  const [partialFor, setPartialFor] = useState<SplitParticipant | null>(null);
+  const [partialAmt, setPartialAmt] = useState("");
 
   const updateParticipant = (pid: string, patch: Partial<SplitParticipant>) => {
     splitStore.update(bill.id, {
@@ -290,6 +295,32 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
 
   const removeItem = (id: string) => {
     splitStore.update(bill.id, { items: bill.items.filter((i) => i.id !== id) });
+  };
+
+  const addParticipant = () => {
+    const name = newName.trim();
+    if (!name) return toast.error("Enter a name");
+    if (bill.participants.some((p) => p.name.toLowerCase() === name.toLowerCase()))
+      return toast.error("Name already in this split");
+    splitStore.addParticipant(bill.id, name);
+    setNewName("");
+    toast.success(`${name} added`);
+  };
+
+  const removeParticipant = (pid: string, name: string) => {
+    splitStore.removeParticipant(bill.id, pid);
+    toast.success(`${name} removed`);
+  };
+
+  const submitPartial = () => {
+    if (!partialFor) return;
+    const amt = parseFloat(partialAmt);
+    if (!Number.isFinite(amt) || amt <= 0) return toast.error("Enter a valid amount");
+    const owedNow = owed[partialFor.id] || 0;
+    splitStore.recordPartialPayment(bill.id, partialFor.id, amt, owedNow);
+    toast.success(`Recorded ${formatPeso(amt)} from ${partialFor.name}`);
+    setPartialFor(null);
+    setPartialAmt("");
   };
 
   const deleteSplit = () => {
@@ -353,7 +384,12 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
                   <p className="truncate text-sm font-medium text-foreground">
                     {p.name}{p.id === bill.payerId && <span className="ml-1 text-[10px] text-primary">(payer)</span>}
                   </p>
-                  <p className="text-xs text-muted-foreground">Owes {formatPeso(owed[p.id] || 0)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Owes {formatPeso(owed[p.id] || 0)}
+                    {(p.paidAmount ?? 0) > 0 && !p.paid && (
+                      <span className="ml-1 text-success">· paid {formatPeso(p.paidAmount || 0)}, left {formatPeso(remaining[p.id] || 0)}</span>
+                    )}
+                  </p>
                 </div>
                 {p.paid ? (
                   <button
@@ -364,6 +400,22 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
                   </button>
                 ) : (
                   <div className="flex items-center gap-1">
+                    {p.id !== bill.payerId && (
+                      <button
+                        onClick={() => removeParticipant(p.id, p.name)}
+                        aria-label={`Remove ${p.name}`}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { setPartialFor(p); setPartialAmt(""); }}
+                      aria-label={`Record partial from ${p.name}`}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/10 text-secondary"
+                    >
+                      <Banknote className="h-3.5 w-3.5" />
+                    </button>
                     <button
                       onClick={() => toast.success(`Reminder sent to ${p.name}`)}
                       aria-label={`Remind ${p.name}`}
@@ -375,7 +427,7 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
                       onClick={() => splitStore.togglePaid(bill.id, p.id)}
                       className="flex items-center gap-1 rounded-lg bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning"
                     >
-                      <Clock className="h-3 w-3" /> Mark paid
+                      <Check className="h-3 w-3" /> Paid
                     </button>
                   </div>
                 )}
@@ -407,6 +459,20 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
               )}
             </div>
           ))}
+
+          {/* Add participant inline */}
+          <div className="flex items-center gap-2 rounded-2xl border border-dashed border-border bg-card p-3">
+            <UserPlus className="h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Add a person…"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") addParticipant(); }}
+              className="h-8 flex-1 rounded-lg"
+              maxLength={40}
+            />
+            <Button size="sm" className="h-8 rounded-lg" onClick={addParticipant}>Add</Button>
+          </div>
         </div>
 
         {/* Items section */}
@@ -492,6 +558,33 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
           )}
         </div>
       </div>
+
+      {/* Partial payment dialog */}
+      <Dialog open={!!partialFor} onOpenChange={(v) => { if (!v) { setPartialFor(null); setPartialAmt(""); } }}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Record partial payment</DialogTitle>
+            <DialogDescription>
+              {partialFor && `${partialFor.name} owes ${formatPeso(owed[partialFor.id] || 0)}. Remaining: ${formatPeso(remaining[partialFor.id] || 0)}.`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div>
+              <Label>Amount paid (₱)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={partialAmt}
+                onChange={(e) => setPartialAmt(e.target.value)}
+                className="rounded-xl"
+                autoFocus
+              />
+            </div>
+            <Button className="w-full rounded-xl" onClick={submitPartial}>Record payment</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

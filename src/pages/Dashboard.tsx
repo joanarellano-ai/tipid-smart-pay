@@ -86,25 +86,48 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Total Bill Card */}
-        <div className="mb-5 rounded-2xl gradient-primary p-6 shadow-lg animate-fade-in" style={{ animationDelay: "0.1s" }}>
-          <p className="mb-1 text-sm text-primary-foreground/70">This Month's Total</p>
-          <p className="mb-4 text-3xl font-extrabold text-primary-foreground animate-count-up">
-            {formatPeso(thisMonthTotal)}
-          </p>
-          <div className="flex items-center justify-between">
+        {/* Total Bill Card / Empty state */}
+        {entries.length === 0 ? (
+          <div className="mb-5 rounded-2xl border border-dashed border-border bg-card p-5 text-center shadow-card animate-fade-in" style={{ animationDelay: "0.1s" }}>
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl gradient-primary">
+              <Sparkles className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <h3 className="mb-1 text-base font-bold text-foreground">Predictions locked</h3>
+            <p className="mb-4 text-xs text-muted-foreground">
+              Complete the 3-month bill survey to unlock smart forecasts.
+            </p>
             <button
-              onClick={() => navigate("/bill-history")}
-              className="flex items-center gap-1 rounded-lg bg-primary-foreground/15 px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary-foreground/25 transition-colors"
+              onClick={() => navigate("/bill-survey")}
+              className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90"
             >
-              <Sparkles className="h-3 w-3" />
-              Predicted: {formatPeso(totalPredicted)} ({trend >= 0 ? "+" : ""}{trend}%)
+              Take the bill survey
             </button>
-            <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 text-[10px] text-primary-foreground">
-              {avgConfidence}% confidence
-            </span>
           </div>
-        </div>
+        ) : (
+          <div className="mb-5 rounded-2xl gradient-primary p-6 shadow-lg animate-fade-in" style={{ animationDelay: "0.1s" }}>
+            <p className="mb-1 text-sm text-primary-foreground/70">This Month's Total</p>
+            <p className="mb-4 text-3xl font-extrabold text-primary-foreground animate-count-up">
+              {formatPeso(thisMonthTotal)}
+            </p>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => navigate("/bill-history")}
+                className="flex items-center gap-1 rounded-lg bg-primary-foreground/15 px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary-foreground/25 transition-colors"
+              >
+                <Sparkles className="h-3 w-3" />
+                Predicted: {formatPeso(totalPredicted)} ({trend >= 0 ? "+" : ""}{trend}%)
+              </button>
+              <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 text-[10px] text-primary-foreground">
+                {avgConfidence}% confidence
+              </span>
+            </div>
+            {entries.length < 9 && (
+              <p className="mt-3 rounded-lg bg-primary-foreground/10 px-2.5 py-1.5 text-[10px] text-primary-foreground/90">
+                ⚠ Partial data — accuracy will improve as more bills are added.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="mb-5 grid grid-cols-4 gap-3 animate-fade-in" style={{ animationDelay: "0.15s" }}>
@@ -148,37 +171,39 @@ export default function Dashboard() {
         </div>
 
         {/* Bills Breakdown */}
-        <div className="space-y-3 animate-fade-in" style={{ animationDelay: "0.25s" }}>
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-foreground">This Month's Bills</h3>
-            <button onClick={() => navigate("/bill-history")} className="text-xs text-primary hover:underline">
-              History →
-            </button>
-          </div>
-          {predictions.map((p) => {
-            const meta = getUtilityMeta(p.utility);
-            const rows = billHistoryStore.getByUtility(p.utility);
-            const latest = rows[rows.length - 1];
-            const trend = p.trendPercent;
-            return (
-              <button
-                key={p.utility}
-                onClick={() => navigate("/bill-history")}
-                className="flex w-full items-center gap-4 rounded-2xl bg-card p-4 shadow-card transition-all hover:shadow-soft active:scale-[0.99]"
-              >
-                <span className="text-2xl">{meta.icon}</span>
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-foreground">{meta.label}</p>
-                  <p className="text-sm text-muted-foreground">{formatPeso(latest?.amount ?? 0)}</p>
-                </div>
-                <div className={`flex items-center gap-1 text-xs font-medium ${trend > 0 ? "text-destructive" : trend < 0 ? "text-primary" : "text-muted-foreground"}`}>
-                  {trend > 0 ? <TrendingUp className="h-3 w-3" /> : trend < 0 ? <TrendingDown className="h-3 w-3" /> : null}
-                  {trend > 0 ? "+" : ""}{trend}%
-                </div>
+        {entries.length > 0 && (
+          <div className="space-y-3 animate-fade-in" style={{ animationDelay: "0.25s" }}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-foreground">This Month's Bills</h3>
+              <button onClick={() => navigate("/bill-history")} className="text-xs text-primary hover:underline">
+                History →
               </button>
-            );
-          })}
-        </div>
+            </div>
+            {predictions.map((p) => {
+              const meta = getUtilityMeta(p.utility);
+              const rows = billHistoryStore.getByUtility(p.utility);
+              const latest = rows[rows.length - 1];
+              const trend = p.trendPercent;
+              return (
+                <button
+                  key={p.utility}
+                  onClick={() => navigate("/bill-history")}
+                  className="flex w-full items-center gap-4 rounded-2xl bg-card p-4 shadow-card transition-all hover:shadow-soft active:scale-[0.99]"
+                >
+                  <span className="text-2xl">{meta.icon}</span>
+                  <div className="flex-1 text-left">
+                    <p className="font-medium text-foreground">{meta.label}</p>
+                    <p className="text-sm text-muted-foreground">{formatPeso(latest?.amount ?? 0)}</p>
+                  </div>
+                  <div className={`flex items-center gap-1 text-xs font-medium ${trend > 0 ? "text-destructive" : trend < 0 ? "text-primary" : "text-muted-foreground"}`}>
+                    {trend > 0 ? <TrendingUp className="h-3 w-3" /> : trend < 0 ? <TrendingDown className="h-3 w-3" /> : null}
+                    {trend > 0 ? "+" : ""}{trend}%
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { useWallet } from "@/lib/walletStore";
-import { CreditCard, ChevronRight, Clock } from "lucide-react";
+import { CreditCard, ChevronRight, Clock, Wallet as WalletIcon, Plus, ClipboardList } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import BalanceCard from "@/components/wallet/BalanceCard";
 import TopUpDialog from "@/components/wallet/TopUpDialog";
 import SendMoneyDialog from "@/components/wallet/SendMoneyDialog";
 import PayBillsDialog from "@/components/wallet/PayBillsDialog";
 import UpcomingBills from "@/components/wallet/UpcomingBills";
 import TransactionList from "@/components/wallet/TransactionList";
+import { useBillHistory } from "@/lib/billHistoryStore";
 
 export default function WalletPage() {
   const wallet = useWallet();
+  const billHistory = useBillHistory();
   const navigate = useNavigate();
 
   const [topUpOpen, setTopUpOpen] = useState(false);
@@ -18,11 +21,37 @@ export default function WalletPage() {
   const [payBillsOpen, setPayBillsOpen] = useState(false);
 
   const defaultMethod = wallet.paymentMethods.find((pm) => pm.isDefault);
+  const isFresh = wallet.balance === 0 && wallet.transactions.length === 0;
+  const noBillData = billHistory.length === 0;
 
   return (
     <div className="px-4 pt-14 pb-4">
       <div className="mx-auto max-w-lg">
         <h1 className="mb-5 text-xl font-bold text-foreground animate-fade-in">Wallet</h1>
+
+        {isFresh && (
+          <div className="mb-5 rounded-2xl border border-dashed border-border bg-card p-5 text-center shadow-card animate-fade-in">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent">
+              <WalletIcon className="h-6 w-6 text-accent-foreground" />
+            </div>
+            <h2 className="mb-1 text-base font-bold text-foreground">No balance available yet</h2>
+            <p className="mb-4 text-xs text-muted-foreground">
+              Add funds or track your first expense to begin.
+            </p>
+            <div className="flex gap-2">
+              <Button className="flex-1 rounded-xl" onClick={() => setTopUpOpen(true)}>
+                <Plus className="mr-1 h-4 w-4" /> Add Balance
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 rounded-xl"
+                onClick={() => navigate(noBillData ? "/bill-survey" : "/bill-history")}
+              >
+                <ClipboardList className="mr-1 h-4 w-4" /> Track First Expense
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Balance Card */}
         <BalanceCard
