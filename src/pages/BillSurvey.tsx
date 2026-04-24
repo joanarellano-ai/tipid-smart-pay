@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { billHistoryStore, getUtilityMeta, type BillEntry, type Utility } from "@/lib/billHistoryStore";
 import { toast } from "sonner";
-import { ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, CheckCircle2, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import logo from "@/assets/tipidpay-logo.png";
 
 /* ── Build the 3 most recent month labels (oldest → newest) ── */
@@ -43,6 +44,8 @@ type StepData = { rows: Row[]; dueDay: string };
 export default function BillSurvey() {
   const navigate = useNavigate();
   const months = useMemo(lastThreeMonths, []);
+  // Gate: does the user actually pay their own utility bills?
+  const [paysBills, setPaysBills] = useState<boolean | null>(null);
   const [step, setStep] = useState(0); // 0,1,2 = utilities, 3 = review
   const totalSteps = utilities.length + 1;
 
@@ -136,6 +139,83 @@ export default function BillSurvey() {
     toast.success("Bill history saved", { description: "Predictions are ready on your dashboard." });
     navigate("/dashboard");
   };
+
+  /* ── Gate: do you pay your own bills? ── */
+  if (paysBills === null) {
+    const choose = (val: boolean) => {
+      if (!val) {
+        billHistoryStore.replaceAll([]);
+        localStorage.removeItem("tipidpay_new_user");
+        localStorage.setItem("tipidpay_skip_bills", "1");
+        toast.success("No problem!", {
+          description: "You can still use Wallet, Splits and other features.",
+        });
+        navigate("/dashboard");
+        return;
+      }
+      localStorage.removeItem("tipidpay_skip_bills");
+      setPaysBills(true);
+    };
+
+    return (
+      <div className="flex min-h-screen flex-col px-6 gradient-hero">
+        <div className="pt-6 pb-2">
+          <Progress value={5} className="h-1.5 bg-border" />
+        </div>
+        <div className="flex flex-1 flex-col items-center justify-center py-8">
+          <div className="w-full max-w-sm animate-fade-in">
+            <div className="mb-6 text-center">
+              <img src={logo} alt="TIPIDPAY" width={48} height={48} className="mx-auto mb-3 drop-shadow-md" />
+              <h2 className="text-2xl font-bold text-foreground">Quick question</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Do you pay your own utility bills (electricity, water, internet)?
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => choose(true)}
+                className={cn(
+                  "flex w-full items-center gap-4 rounded-2xl border-2 border-border bg-card p-5 text-left transition-all duration-200 hover:border-primary/40 hover:shadow-sm"
+                )}
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl gradient-primary">
+                  <CheckCircle2 className="h-6 w-6 text-primary-foreground" />
+                </div>
+                <div className="min-w-0">
+                  <span className="block font-semibold text-foreground">Yes, I pay my bills</span>
+                  <span className="block text-xs text-muted-foreground">
+                    We'll ask for your last 3 months to predict accurately
+                  </span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => choose(false)}
+                className={cn(
+                  "flex w-full items-center gap-4 rounded-2xl border-2 border-border bg-card p-5 text-left transition-all duration-200 hover:border-primary/40 hover:shadow-sm"
+                )}
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted">
+                  <XCircle className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div className="min-w-0">
+                  <span className="block font-semibold text-foreground">No, someone else does</span>
+                  <span className="block text-xs text-muted-foreground">
+                    Skip the survey — predictions stay disabled
+                  </span>
+                </div>
+              </button>
+            </div>
+
+            <p className="mt-6 text-center text-xs text-muted-foreground">
+              You can change this anytime in Profile → Update Bill Survey.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   /* ── Review step ── */
   if (step === utilities.length) {

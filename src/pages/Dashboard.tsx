@@ -92,15 +92,19 @@ export default function Dashboard() {
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl gradient-primary">
               <Sparkles className="h-6 w-6 text-primary-foreground" />
             </div>
-            <h3 className="mb-1 text-base font-bold text-foreground">Predictions locked</h3>
+            <h3 className="mb-1 text-base font-bold text-foreground">
+              {localStorage.getItem("tipidpay_skip_bills") === "1" ? "Bill tracking is off" : "Predictions locked"}
+            </h3>
             <p className="mb-4 text-xs text-muted-foreground">
-              Complete the 3-month bill survey to unlock smart forecasts.
+              {localStorage.getItem("tipidpay_skip_bills") === "1"
+                ? "You said someone else pays your bills. Turn on tracking anytime to get smart forecasts."
+                : "Complete the 3-month bill survey to unlock smart forecasts."}
             </p>
             <button
               onClick={() => navigate("/bill-survey")}
               className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90"
             >
-              Take the bill survey
+              {localStorage.getItem("tipidpay_skip_bills") === "1" ? "Start tracking my bills" : "Take the bill survey"}
             </button>
           </div>
         ) : (
