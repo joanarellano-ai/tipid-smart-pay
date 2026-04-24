@@ -558,6 +558,33 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
           )}
         </div>
       </div>
+
+      {/* Partial payment dialog */}
+      <Dialog open={!!partialFor} onOpenChange={(v) => { if (!v) { setPartialFor(null); setPartialAmt(""); } }}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Record partial payment</DialogTitle>
+            <DialogDescription>
+              {partialFor && `${partialFor.name} owes ${formatPeso(owed[partialFor.id] || 0)}. Remaining: ${formatPeso(remaining[partialFor.id] || 0)}.`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div>
+              <Label>Amount paid (₱)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={partialAmt}
+                onChange={(e) => setPartialAmt(e.target.value)}
+                className="rounded-xl"
+                autoFocus
+              />
+            </div>
+            <Button className="w-full rounded-xl" onClick={submitPartial}>Record payment</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
