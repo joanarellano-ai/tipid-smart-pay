@@ -12,8 +12,10 @@ export interface SplitParticipant {
   exact?: number;
   /** Used by "items" method - sum of item costs assigned to them */
   itemsTotal?: number;
-  /** Whether they've settled their share */
+  /** Whether they've fully settled their share */
   paid: boolean;
+  /** Partial amount already paid (peso). 0 if none. */
+  paidAmount?: number;
 }
 
 export interface SplitItem {
@@ -75,12 +77,57 @@ export const splitStore = {
       b.id === billId
         ? {
             ...b,
-            participants: b.participants.map((p) =>
-              p.id === participantId ? { ...p, paid: !p.paid } : p
-            ),
+            participants: b.participants.map((p) => {
+              if (p.id !== participantId) return p;
+              const nextPaid = !p.paid;
+              return { ...p, paid: nextPaid, paidAmount: nextPaid ? undefined : 0 };
+            }),
           }
         : b
     );
+    emit();
+  },
+  recordPartialPayment(billId: string, participantId: string, amount: number, owedNow: number) {
+    state = state.map((b) =>
+      b.id === billId
+        ? {
+            ...b,
+            participants: b.participants.map((p) => {
+              if (p.id !== participantId) return p;
+              const prev = p.paidAmount || 0;
+              const next = Math.max(0, prev + amount);
+              const fullyPaid = next + 0.005 >= owedNow;
+              return { ...p, paidAmount: fullyPaid ? undefined : next, paid: fullyPaid };
+            }),
+          }
+        : b
+    );
+    emit();
+  },
+  addParticipant(billId: string, name: string) {
+    state = state.map((b) =>
+      b.id === billId
+        ? {
+            ...b,
+            participants: [
+              ...b.participants,
+              { id: newId(), name, shares: 1, exact: 0, paid: false, paidAmount: 0 },
+            ],
+          }
+        : b
+    );
+    emit();
+  },
+  removeParticipant(billId: string, participantId: string) {
+    state = state.map((b) => {
+      if (b.id !== billId) return b;
+      if (b.payerId === participantId) return b; // never remove the payer
+      return {
+        ...b,
+        participants: b.participants.filter((p) => p.id !== participantId),
+        items: b.items.map((it) => ({ ...it, sharedBy: it.sharedBy.filter((id) => id !== participantId) })),
+      };
+    });
     emit();
   },
   subscribe(l: Listener) {
@@ -149,4 +196,15 @@ function round2(n: number): number {
 
 export function newId(): string {
   return Math.random().toString(36).slice(2, 10);
+}
+
+/** Remaining balance per participant after partial payments (>= 0). */
+export function computeRemaining(bill: SplitBill): Record<string, number> {
+  const owed = computeOwed(bill);
+  const out: Record<string, number> = {};
+  bill.participants.forEach((p) => {
+    const paid = p.paid ? owed[p.id] || 0 : p.paidAmount || 0;
+    out[p.id] = Math.max(0, Math.round(((owed[p.id] || 0) - paid) * 100) / 100);
+  });
+  return out;
 }
