@@ -86,25 +86,48 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Total Bill Card */}
-        <div className="mb-5 rounded-2xl gradient-primary p-6 shadow-lg animate-fade-in" style={{ animationDelay: "0.1s" }}>
-          <p className="mb-1 text-sm text-primary-foreground/70">This Month's Total</p>
-          <p className="mb-4 text-3xl font-extrabold text-primary-foreground animate-count-up">
-            {formatPeso(thisMonthTotal)}
-          </p>
-          <div className="flex items-center justify-between">
+        {/* Total Bill Card / Empty state */}
+        {entries.length === 0 ? (
+          <div className="mb-5 rounded-2xl border border-dashed border-border bg-card p-5 text-center shadow-card animate-fade-in" style={{ animationDelay: "0.1s" }}>
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl gradient-primary">
+              <Sparkles className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <h3 className="mb-1 text-base font-bold text-foreground">Predictions locked</h3>
+            <p className="mb-4 text-xs text-muted-foreground">
+              Complete the 3-month bill survey to unlock smart forecasts.
+            </p>
             <button
-              onClick={() => navigate("/bill-history")}
-              className="flex items-center gap-1 rounded-lg bg-primary-foreground/15 px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary-foreground/25 transition-colors"
+              onClick={() => navigate("/bill-survey")}
+              className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90"
             >
-              <Sparkles className="h-3 w-3" />
-              Predicted: {formatPeso(totalPredicted)} ({trend >= 0 ? "+" : ""}{trend}%)
+              Take the bill survey
             </button>
-            <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 text-[10px] text-primary-foreground">
-              {avgConfidence}% confidence
-            </span>
           </div>
-        </div>
+        ) : (
+          <div className="mb-5 rounded-2xl gradient-primary p-6 shadow-lg animate-fade-in" style={{ animationDelay: "0.1s" }}>
+            <p className="mb-1 text-sm text-primary-foreground/70">This Month's Total</p>
+            <p className="mb-4 text-3xl font-extrabold text-primary-foreground animate-count-up">
+              {formatPeso(thisMonthTotal)}
+            </p>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => navigate("/bill-history")}
+                className="flex items-center gap-1 rounded-lg bg-primary-foreground/15 px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary-foreground/25 transition-colors"
+              >
+                <Sparkles className="h-3 w-3" />
+                Predicted: {formatPeso(totalPredicted)} ({trend >= 0 ? "+" : ""}{trend}%)
+              </button>
+              <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 text-[10px] text-primary-foreground">
+                {avgConfidence}% confidence
+              </span>
+            </div>
+            {entries.length < 9 && (
+              <p className="mt-3 rounded-lg bg-primary-foreground/10 px-2.5 py-1.5 text-[10px] text-primary-foreground/90">
+                ⚠ Partial data — accuracy will improve as more bills are added.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="mb-5 grid grid-cols-4 gap-3 animate-fade-in" style={{ animationDelay: "0.15s" }}>
