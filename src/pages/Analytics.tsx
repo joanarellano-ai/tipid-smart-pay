@@ -1,10 +1,54 @@
-import { spendingBreakdown, savingsTrend, totalBill, formatPeso, predictedBill } from "@/lib/data";
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, Tooltip, BarChart, Bar, YAxis } from "recharts";
-import { TrendingDown, TrendingUp, Target, Leaf } from "lucide-react";
+import { spendingBreakdown, savingsTrend, totalBill, formatPeso } from "@/lib/data";
+import { PieChart, Pie, Cell, ResponsiveContainer, XAxis, Tooltip, BarChart, Bar } from "recharts";
+import { TrendingDown, Target, Leaf, Lock, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useBillHistory } from "@/lib/billHistoryStore";
+import { useWallet } from "@/lib/walletStore";
+import { Button } from "@/components/ui/button";
 
 const budgetLimit = 6000;
 
 export default function Analytics() {
+  const navigate = useNavigate();
+  const billHistory = useBillHistory();
+  const wallet = useWallet();
+  const trackedCount = wallet.reminders.filter((r) => r.tracked).length;
+  const hasData = billHistory.length > 0 || trackedCount > 0;
+  const trackMode = typeof window !== "undefined" && localStorage.getItem("tipidpay_track_mode") === "1";
+
+  if (!hasData) {
+    return (
+      <div className="px-4 pt-14 pb-4">
+        <div className="mx-auto max-w-lg">
+          <h1 className="mb-1 text-xl font-bold text-foreground animate-fade-in">Analytics</h1>
+          <p className="mb-5 text-sm text-muted-foreground animate-fade-in">Your spending insights</p>
+
+          <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center shadow-card animate-fade-in">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
+              <Lock className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h2 className="mb-1 text-base font-bold text-foreground">Analytics locked</h2>
+            <p className="mb-4 text-xs text-muted-foreground">
+              {trackMode
+                ? "Add at least 1 bill with payment status to unlock analytics."
+                : "Take the bill survey or start tracking bills to see insights."}
+            </p>
+            <div className="flex gap-2">
+              <Button className="flex-1 rounded-xl" onClick={() => navigate(trackMode ? "/reminders" : "/bill-survey")}>
+                {trackMode ? "Add a bill" : "Take the survey"}
+              </Button>
+              {!trackMode && (
+                <Button variant="outline" className="flex-1 rounded-xl" onClick={() => navigate("/reminders")}>
+                  Track bills
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const budgetPercent = Math.round((totalBill / budgetLimit) * 100);
 
   return (
@@ -12,6 +56,13 @@ export default function Analytics() {
       <div className="mx-auto max-w-lg">
         <h1 className="mb-1 text-xl font-bold text-foreground animate-fade-in">Analytics</h1>
         <p className="mb-5 text-sm text-muted-foreground animate-fade-in">Your spending insights</p>
+
+        {trackMode && trackedCount < 3 && (
+          <div className="mb-4 rounded-2xl bg-accent p-3 text-xs text-accent-foreground animate-fade-in">
+            <Sparkles className="mr-1 inline h-3.5 w-3.5 text-primary" />
+            System is learning from your bill tracking. Add more data to improve accuracy.
+          </div>
+        )}
 
         {/* Spending Breakdown */}
         <div className="mb-5 rounded-2xl bg-card p-5 shadow-card animate-fade-in" style={{ animationDelay: "0.05s" }}>
@@ -53,7 +104,7 @@ export default function Analytics() {
               style={{ width: `${Math.min(budgetPercent, 100)}%` }}
             />
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">{100 - budgetPercent}% remaining this month</p>
+          <p className="mt-2 text-xs text-muted-foreground">{Math.max(0, 100 - budgetPercent)}% remaining this month</p>
         </div>
 
         {/* Savings Trend */}
