@@ -262,6 +262,7 @@ function CreateSplitDialog({
 
 function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) {
   const owed = useMemo(() => computeOwed(bill), [bill]);
+  const remaining = useMemo(() => computeRemaining(bill), [bill]);
   const meta = CATEGORY_META[bill.category];
   const Icon = meta.icon;
   const sumOwed = Object.values(owed).reduce((s, v) => s + v, 0);
@@ -271,6 +272,9 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
   const [itemLabel, setItemLabel] = useState("");
   const [itemAmount, setItemAmount] = useState("");
   const [itemSharedBy, setItemSharedBy] = useState<string[]>([]);
+  const [newName, setNewName] = useState("");
+  const [partialFor, setPartialFor] = useState<SplitParticipant | null>(null);
+  const [partialAmt, setPartialAmt] = useState("");
 
   const updateParticipant = (pid: string, patch: Partial<SplitParticipant>) => {
     splitStore.update(bill.id, {
@@ -291,6 +295,32 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
 
   const removeItem = (id: string) => {
     splitStore.update(bill.id, { items: bill.items.filter((i) => i.id !== id) });
+  };
+
+  const addParticipant = () => {
+    const name = newName.trim();
+    if (!name) return toast.error("Enter a name");
+    if (bill.participants.some((p) => p.name.toLowerCase() === name.toLowerCase()))
+      return toast.error("Name already in this split");
+    splitStore.addParticipant(bill.id, name);
+    setNewName("");
+    toast.success(`${name} added`);
+  };
+
+  const removeParticipant = (pid: string, name: string) => {
+    splitStore.removeParticipant(bill.id, pid);
+    toast.success(`${name} removed`);
+  };
+
+  const submitPartial = () => {
+    if (!partialFor) return;
+    const amt = parseFloat(partialAmt);
+    if (!Number.isFinite(amt) || amt <= 0) return toast.error("Enter a valid amount");
+    const owedNow = owed[partialFor.id] || 0;
+    splitStore.recordPartialPayment(bill.id, partialFor.id, amt, owedNow);
+    toast.success(`Recorded ${formatPeso(amt)} from ${partialFor.name}`);
+    setPartialFor(null);
+    setPartialAmt("");
   };
 
   const deleteSplit = () => {
