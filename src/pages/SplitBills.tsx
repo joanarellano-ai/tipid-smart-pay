@@ -384,7 +384,12 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
                   <p className="truncate text-sm font-medium text-foreground">
                     {p.name}{p.id === bill.payerId && <span className="ml-1 text-[10px] text-primary">(payer)</span>}
                   </p>
-                  <p className="text-xs text-muted-foreground">Owes {formatPeso(owed[p.id] || 0)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Owes {formatPeso(owed[p.id] || 0)}
+                    {(p.paidAmount ?? 0) > 0 && !p.paid && (
+                      <span className="ml-1 text-success">· paid {formatPeso(p.paidAmount || 0)}, left {formatPeso(remaining[p.id] || 0)}</span>
+                    )}
+                  </p>
                 </div>
                 {p.paid ? (
                   <button
@@ -395,6 +400,22 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
                   </button>
                 ) : (
                   <div className="flex items-center gap-1">
+                    {p.id !== bill.payerId && (
+                      <button
+                        onClick={() => removeParticipant(p.id, p.name)}
+                        aria-label={`Remove ${p.name}`}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { setPartialFor(p); setPartialAmt(""); }}
+                      aria-label={`Record partial from ${p.name}`}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/10 text-secondary"
+                    >
+                      <Banknote className="h-3.5 w-3.5" />
+                    </button>
                     <button
                       onClick={() => toast.success(`Reminder sent to ${p.name}`)}
                       aria-label={`Remind ${p.name}`}
@@ -406,7 +427,7 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
                       onClick={() => splitStore.togglePaid(bill.id, p.id)}
                       className="flex items-center gap-1 rounded-lg bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning"
                     >
-                      <Clock className="h-3 w-3" /> Mark paid
+                      <Check className="h-3 w-3" /> Paid
                     </button>
                   </div>
                 )}
@@ -438,6 +459,20 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
               )}
             </div>
           ))}
+
+          {/* Add participant inline */}
+          <div className="flex items-center gap-2 rounded-2xl border border-dashed border-border bg-card p-3">
+            <UserPlus className="h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Add a person…"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") addParticipant(); }}
+              className="h-8 flex-1 rounded-lg"
+              maxLength={40}
+            />
+            <Button size="sm" className="h-8 rounded-lg" onClick={addParticipant}>Add</Button>
+          </div>
         </div>
 
         {/* Items section */}
