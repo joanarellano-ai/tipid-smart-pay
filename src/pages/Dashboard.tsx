@@ -87,27 +87,30 @@ export default function Dashboard() {
         </div>
 
         {/* Total Bill Card / Empty state */}
-        {entries.length === 0 ? (
-          <div className="mb-5 rounded-2xl border border-dashed border-border bg-card p-5 text-center shadow-card animate-fade-in" style={{ animationDelay: "0.1s" }}>
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl gradient-primary">
-              <Sparkles className="h-6 w-6 text-primary-foreground" />
+        {entries.length === 0 ? (() => {
+          const trackMode = localStorage.getItem("tipidpay_track_mode") === "1";
+          return (
+            <div className="mb-5 rounded-2xl border border-dashed border-border bg-card p-5 text-center shadow-card animate-fade-in" style={{ animationDelay: "0.1s" }}>
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl gradient-primary">
+                <Sparkles className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <h3 className="mb-1 text-base font-bold text-foreground">
+                {trackMode ? "Tracking mode active" : "Predictions locked"}
+              </h3>
+              <p className="mb-4 text-xs text-muted-foreground">
+                {trackMode
+                  ? "Add at least 1 bill with payment status to unlock predictions and analytics."
+                  : "Complete the 3-month bill survey to unlock smart forecasts."}
+              </p>
+              <button
+                onClick={() => navigate(trackMode ? "/reminders" : "/bill-survey")}
+                className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90"
+              >
+                {trackMode ? "Add a bill" : "Take the bill survey"}
+              </button>
             </div>
-            <h3 className="mb-1 text-base font-bold text-foreground">
-              {localStorage.getItem("tipidpay_skip_bills") === "1" ? "Bill tracking is off" : "Predictions locked"}
-            </h3>
-            <p className="mb-4 text-xs text-muted-foreground">
-              {localStorage.getItem("tipidpay_skip_bills") === "1"
-                ? "You said someone else pays your bills. Turn on tracking anytime to get smart forecasts."
-                : "Complete the 3-month bill survey to unlock smart forecasts."}
-            </p>
-            <button
-              onClick={() => navigate("/bill-survey")}
-              className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90"
-            >
-              {localStorage.getItem("tipidpay_skip_bills") === "1" ? "Start tracking my bills" : "Take the bill survey"}
-            </button>
-          </div>
-        ) : (
+          );
+        })() : (
           <div className="mb-5 rounded-2xl gradient-primary p-6 shadow-lg animate-fade-in" style={{ animationDelay: "0.1s" }}>
             <p className="mb-1 text-sm text-primary-foreground/70">This Month's Total</p>
             <p className="mb-4 text-3xl font-extrabold text-primary-foreground animate-count-up">

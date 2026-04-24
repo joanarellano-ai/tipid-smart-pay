@@ -140,21 +140,23 @@ export default function BillSurvey() {
     navigate("/dashboard");
   };
 
-  /* ── Gate: do you pay your own bills? ── */
+  /* ── Mandatory entry choice: Survey OR Track Bills ── */
   if (paysBills === null) {
-    const choose = (val: boolean) => {
-      if (!val) {
-        billHistoryStore.replaceAll([]);
-        localStorage.removeItem("tipidpay_new_user");
-        localStorage.setItem("tipidpay_skip_bills", "1");
-        toast.success("No problem!", {
-          description: "You can still use Wallet, Splits and other features.",
-        });
-        navigate("/dashboard");
-        return;
-      }
+    const startSurvey = () => {
       localStorage.removeItem("tipidpay_skip_bills");
+      localStorage.removeItem("tipidpay_track_mode");
       setPaysBills(true);
+    };
+    const trackInstead = () => {
+      // Skip survey but enforce bill tracking mode
+      billHistoryStore.replaceAll([]);
+      localStorage.removeItem("tipidpay_new_user");
+      localStorage.removeItem("tipidpay_skip_bills");
+      localStorage.setItem("tipidpay_track_mode", "1");
+      toast.info("Bill tracking enabled", {
+        description: "Add at least 1 bill with payment status to unlock predictions.",
+      });
+      navigate("/reminders");
     };
 
     return (
@@ -166,50 +168,52 @@ export default function BillSurvey() {
           <div className="w-full max-w-sm animate-fade-in">
             <div className="mb-6 text-center">
               <img src={logo} alt="TIPIDPAY" width={48} height={48} className="mx-auto mb-3 drop-shadow-md" />
-              <h2 className="text-2xl font-bold text-foreground">Quick question</h2>
+              <h2 className="text-2xl font-bold text-foreground">Choose how to start</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Do you pay your own utility bills (electricity, water, internet)?
+                Pick one to continue. You'll be able to switch later.
               </p>
             </div>
 
             <div className="space-y-3">
               <button
-                onClick={() => choose(true)}
+                onClick={startSurvey}
                 className={cn(
-                  "flex w-full items-center gap-4 rounded-2xl border-2 border-border bg-card p-5 text-left transition-all duration-200 hover:border-primary/40 hover:shadow-sm"
+                  "flex w-full items-center gap-4 rounded-2xl border-2 border-primary bg-card p-5 text-left shadow-card transition-all duration-200 hover:shadow-md"
                 )}
               >
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl gradient-primary">
-                  <CheckCircle2 className="h-6 w-6 text-primary-foreground" />
+                  <Sparkles className="h-6 w-6 text-primary-foreground" />
                 </div>
                 <div className="min-w-0">
-                  <span className="block font-semibold text-foreground">Yes, I pay my bills</span>
+                  <span className="block font-semibold text-foreground">
+                    Start Survey <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">Recommended</span>
+                  </span>
                   <span className="block text-xs text-muted-foreground">
-                    We'll ask for your last 3 months to predict accurately
+                    Enter past 3 months of bills — predictions ready immediately
                   </span>
                 </div>
               </button>
 
               <button
-                onClick={() => choose(false)}
+                onClick={trackInstead}
                 className={cn(
                   "flex w-full items-center gap-4 rounded-2xl border-2 border-border bg-card p-5 text-left transition-all duration-200 hover:border-primary/40 hover:shadow-sm"
                 )}
               >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted">
-                  <XCircle className="h-6 w-6 text-muted-foreground" />
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-warning/10">
+                  <CheckCircle2 className="h-6 w-6 text-warning" />
                 </div>
                 <div className="min-w-0">
-                  <span className="block font-semibold text-foreground">No, someone else does</span>
+                  <span className="block font-semibold text-foreground">Skip Survey – Track Bills Instead</span>
                   <span className="block text-xs text-muted-foreground">
-                    Skip the survey — predictions stay disabled
+                    Add bills as they come; payment status required on each
                   </span>
                 </div>
               </button>
             </div>
 
-            <p className="mt-6 text-center text-xs text-muted-foreground">
-              You can change this anytime in Profile → Update Bill Survey.
+            <p className="mt-6 rounded-xl bg-muted p-3 text-center text-[11px] text-muted-foreground">
+              Skipping the survey means you must track your bills and payment status to use prediction & analytics features.
             </p>
           </div>
         </div>
