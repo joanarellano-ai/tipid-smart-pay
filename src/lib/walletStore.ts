@@ -29,6 +29,10 @@ export interface BillReminder {
   status: "paid" | "upcoming" | "overdue";
   autoPay: boolean;
   snoozed: boolean;
+  /** ISO date when the bill was marked paid. */
+  paidDate?: string;
+  /** True when added via "Track Bills" mode (vs. seeded/forecast). */
+  tracked?: boolean;
 }
 
 interface WalletState {
