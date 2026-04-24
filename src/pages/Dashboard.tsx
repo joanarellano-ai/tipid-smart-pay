@@ -171,37 +171,39 @@ export default function Dashboard() {
         </div>
 
         {/* Bills Breakdown */}
-        <div className="space-y-3 animate-fade-in" style={{ animationDelay: "0.25s" }}>
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-foreground">This Month's Bills</h3>
-            <button onClick={() => navigate("/bill-history")} className="text-xs text-primary hover:underline">
-              History →
-            </button>
-          </div>
-          {predictions.map((p) => {
-            const meta = getUtilityMeta(p.utility);
-            const rows = billHistoryStore.getByUtility(p.utility);
-            const latest = rows[rows.length - 1];
-            const trend = p.trendPercent;
-            return (
-              <button
-                key={p.utility}
-                onClick={() => navigate("/bill-history")}
-                className="flex w-full items-center gap-4 rounded-2xl bg-card p-4 shadow-card transition-all hover:shadow-soft active:scale-[0.99]"
-              >
-                <span className="text-2xl">{meta.icon}</span>
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-foreground">{meta.label}</p>
-                  <p className="text-sm text-muted-foreground">{formatPeso(latest?.amount ?? 0)}</p>
-                </div>
-                <div className={`flex items-center gap-1 text-xs font-medium ${trend > 0 ? "text-destructive" : trend < 0 ? "text-primary" : "text-muted-foreground"}`}>
-                  {trend > 0 ? <TrendingUp className="h-3 w-3" /> : trend < 0 ? <TrendingDown className="h-3 w-3" /> : null}
-                  {trend > 0 ? "+" : ""}{trend}%
-                </div>
+        {entries.length > 0 && (
+          <div className="space-y-3 animate-fade-in" style={{ animationDelay: "0.25s" }}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-foreground">This Month's Bills</h3>
+              <button onClick={() => navigate("/bill-history")} className="text-xs text-primary hover:underline">
+                History →
               </button>
-            );
-          })}
-        </div>
+            </div>
+            {predictions.map((p) => {
+              const meta = getUtilityMeta(p.utility);
+              const rows = billHistoryStore.getByUtility(p.utility);
+              const latest = rows[rows.length - 1];
+              const trend = p.trendPercent;
+              return (
+                <button
+                  key={p.utility}
+                  onClick={() => navigate("/bill-history")}
+                  className="flex w-full items-center gap-4 rounded-2xl bg-card p-4 shadow-card transition-all hover:shadow-soft active:scale-[0.99]"
+                >
+                  <span className="text-2xl">{meta.icon}</span>
+                  <div className="flex-1 text-left">
+                    <p className="font-medium text-foreground">{meta.label}</p>
+                    <p className="text-sm text-muted-foreground">{formatPeso(latest?.amount ?? 0)}</p>
+                  </div>
+                  <div className={`flex items-center gap-1 text-xs font-medium ${trend > 0 ? "text-destructive" : trend < 0 ? "text-primary" : "text-muted-foreground"}`}>
+                    {trend > 0 ? <TrendingUp className="h-3 w-3" /> : trend < 0 ? <TrendingDown className="h-3 w-3" /> : null}
+                    {trend > 0 ? "+" : ""}{trend}%
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
