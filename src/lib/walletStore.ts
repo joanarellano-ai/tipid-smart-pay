@@ -197,6 +197,43 @@ export const walletStore = {
     emit();
   },
 
+  /** Add a tracked bill (Track Bills mode). status is REQUIRED. */
+  addReminder(input: { category: string; icon?: string; amount: number; dueDate: string; status: "paid" | "upcoming" | "overdue" }) {
+    const id = `r${Date.now()}`;
+    const reminder: BillReminder = {
+      id,
+      category: input.category,
+      icon: input.icon || "🧾",
+      amount: input.amount,
+      dueDate: input.dueDate,
+      status: input.status,
+      autoPay: false,
+      snoozed: false,
+      tracked: true,
+      paidDate: input.status === "paid" ? new Date().toISOString() : undefined,
+    };
+    state = { ...state, reminders: [reminder, ...state.reminders] };
+    emit();
+    return id;
+  },
+
+  setReminderStatus(reminderId: string, status: "paid" | "upcoming" | "overdue") {
+    state = {
+      ...state,
+      reminders: state.reminders.map((r) =>
+        r.id === reminderId
+          ? { ...r, status, paidDate: status === "paid" ? new Date().toISOString() : undefined }
+          : r
+      ),
+    };
+    emit();
+  },
+
+  removeReminder(reminderId: string) {
+    state = { ...state, reminders: state.reminders.filter((r) => r.id !== reminderId) };
+    emit();
+  },
+
   subscribe: (listener: Listener) => {
     listeners.add(listener);
     return () => listeners.delete(listener);
