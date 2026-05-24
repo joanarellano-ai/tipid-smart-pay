@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, ArrowRight, Zap, CreditCard, Users, Lightbulb, AlertTriangle, Clock, Sparkles, History } from "lucide-react";
+import { TrendingUp, TrendingDown, ArrowRight, Zap, CreditCard, Users, Lightbulb, AlertTriangle, Clock, Sparkles, History, Plane } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { currentUser, formatPeso, alerts } from "@/lib/data";
 import { useUser } from "@/lib/userStore";
@@ -151,6 +151,22 @@ export default function Dashboard() {
             </button>
           ))}
         </div>
+
+        {/* Vacation / Group Trips */}
+        <button
+          onClick={() => navigate("/trips")}
+          className="mb-5 flex w-full items-center gap-3 rounded-2xl bg-card p-4 text-left shadow-card transition-all hover:shadow-soft active:scale-[0.99] animate-fade-in"
+          style={{ animationDelay: "0.18s" }}
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-glow">
+            <Plane className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-foreground">Vacation & Group Expenses</p>
+            <p className="text-[11px] text-muted-foreground">Plan trips, split fairly, settle smart</p>
+          </div>
+          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+        </button>
 
         {/* Usage Chart */}
         <div className="mb-5 rounded-2xl bg-card p-5 shadow-card animate-fade-in" style={{ animationDelay: "0.2s" }}>
