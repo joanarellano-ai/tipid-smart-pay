@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, ArrowRight, Zap, CreditCard, Users, Lightbulb, AlertTriangle, Clock, Sparkles, History } from "lucide-react";
+import { TrendingUp, TrendingDown, ArrowRight, Zap, CreditCard, Users, Lightbulb, AlertTriangle, Clock, Sparkles, History, Plane } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { currentUser, formatPeso, alerts } from "@/lib/data";
 import { useUser } from "@/lib/userStore";
