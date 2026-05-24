@@ -23,3 +23,4 @@ Account has SOLO/GROUP modes (accountStore) — solo hides bill-splitting; toggl
 - [Account Modes](mem://features/account-modes) — Solo vs Group mode toggle with persisted state and UI gating
 - [Bill Prediction](mem://features/bill-prediction) — 3-month history-based forecasting per utility with confidence + due date
 - [Split Bills](mem://features/split-bills) — Multi-method splits (equal/shares/exact/items) for trips, family, dining at /splits
+- [Vacation Dashboard](mem://features/vacation-dashboard) — Trip events at /trips: budgets, multi-mode splitting, balances, settlements, analytics, CSV export
