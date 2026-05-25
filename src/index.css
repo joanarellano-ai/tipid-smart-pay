@@ -1,113 +1,131 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/*
+  TIPID SMART PAY — Modern fintech design system
+  All colors HSL. Components must use semantic tokens.
+*/
+
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 220 40% 8%;
+    /* Surfaces — soft, trustworthy fintech base */
+    --background: 210 33% 97%;            /* #F7F9FB */
+    --foreground: 217 33% 17%;            /* #1E293B */
 
     --card: 0 0% 100%;
-    --card-foreground: 220 40% 8%;
+    --card-foreground: 217 33% 17%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 40% 8%;
+    --popover-foreground: 217 33% 17%;
 
-    --primary: 160 84% 39%;
+    /* Primary — Deep Emerald */
+    --primary: 158 64% 32%;               /* #15876A-ish */
     --primary-foreground: 0 0% 100%;
+    --primary-glow: 168 76% 42%;          /* Modern teal */
 
-    --secondary: 224 73% 33%;
+    /* Secondary — Professional Blue */
+    --secondary: 217 91% 35%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 20% 95%;
-    --muted-foreground: 215 16% 47%;
+    /* Muted / borders */
+    --muted: 210 25% 96%;
+    --muted-foreground: 215 16% 47%;      /* #64748B */
 
-    --accent: 160 60% 95%;
-    --accent-foreground: 160 84% 25%;
+    --accent: 158 55% 94%;                /* Soft mint */
+    --accent-foreground: 158 64% 22%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 20% 92%;
-    --input: 214 20% 92%;
-    --ring: 160 84% 39%;
+    --border: 214 28% 91%;                /* #E2E8F0 */
+    --input: 214 28% 91%;
+    --ring: 158 64% 32%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;                       /* 16px modern cards */
 
-    --success: 160 84% 39%;
+    --success: 158 64% 38%;
     --warning: 38 92% 50%;
-    --info: 224 73% 33%;
+    --info: 217 91% 50%;
+    --gold: 38 65% 52%;                   /* Muted gold */
     --pending: 38 92% 50%;
-    --overdue: 0 84% 60%;
-    --paid: 160 84% 39%;
+    --overdue: 0 75% 55%;
+    --paid: 158 64% 38%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(160, 84%, 39%), hsl(224, 73%, 33%));
-    --gradient-card: linear-gradient(135deg, hsl(160, 84%, 95%), hsl(224, 73%, 95%));
-    --gradient-hero: linear-gradient(180deg, hsl(160, 84%, 97%), hsl(210, 20%, 98%));
+    /* Gradients — soft, never neon */
+    --gradient-primary: linear-gradient(135deg, hsl(158 64% 32%), hsl(168 76% 38%));
+    --gradient-card: linear-gradient(135deg, hsl(158 55% 96%), hsl(210 33% 97%));
+    --gradient-hero: linear-gradient(180deg, hsl(158 55% 97%), hsl(210 33% 98%));
+    --gradient-balance: linear-gradient(135deg, hsl(158 64% 28%) 0%, hsl(168 70% 36%) 60%, hsl(217 70% 38%) 100%);
 
-    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.04);
-    --shadow-md: 0 4px 16px -2px hsl(0 0% 0% / 0.06);
-    --shadow-lg: 0 10px 30px -5px hsl(0 0% 0% / 0.08);
-    --shadow-card: 0 2px 12px -2px hsl(160 84% 39% / 0.08);
+    /* Shadows — soft, elevated, never harsh */
+    --shadow-sm: 0 1px 2px 0 hsl(217 33% 17% / 0.04);
+    --shadow-md: 0 4px 14px -4px hsl(217 33% 17% / 0.06);
+    --shadow-lg: 0 12px 32px -8px hsl(217 33% 17% / 0.08);
+    --shadow-card: 0 2px 10px -2px hsl(158 64% 32% / 0.06);
+    --shadow-elevated: 0 16px 40px -12px hsl(158 64% 32% / 0.18);
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 217 33% 17%;
+    --sidebar-primary: 158 64% 32%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 158 55% 94%;
+    --sidebar-accent-foreground: 158 64% 22%;
+    --sidebar-border: 214 28% 91%;
+    --sidebar-ring: 158 64% 32%;
   }
 
   .dark {
-    --background: 220 20% 7%;
-    --foreground: 210 20% 95%;
+    --background: 222 28% 8%;
+    --foreground: 210 25% 96%;
 
-    --card: 220 20% 10%;
-    --card-foreground: 210 20% 95%;
+    --card: 222 25% 11%;
+    --card-foreground: 210 25% 96%;
 
-    --popover: 220 20% 10%;
-    --popover-foreground: 210 20% 95%;
+    --popover: 222 25% 11%;
+    --popover-foreground: 210 25% 96%;
 
-    --primary: 160 84% 39%;
+    --primary: 158 64% 42%;
     --primary-foreground: 0 0% 100%;
+    --primary-glow: 168 76% 48%;
 
-    --secondary: 224 60% 45%;
+    --secondary: 217 70% 48%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 220 20% 15%;
-    --muted-foreground: 215 16% 60%;
+    --muted: 222 20% 16%;
+    --muted-foreground: 215 16% 65%;
 
-    --accent: 160 40% 15%;
-    --accent-foreground: 160 84% 60%;
+    --accent: 158 40% 16%;
+    --accent-foreground: 158 64% 70%;
 
-    --destructive: 0 62% 30%;
+    --destructive: 0 65% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 18%;
-    --input: 220 20% 18%;
-    --ring: 160 84% 39%;
+    --border: 222 20% 20%;
+    --input: 222 20% 20%;
+    --ring: 158 64% 42%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(160, 84%, 39%), hsl(224, 60%, 45%));
-    --gradient-card: linear-gradient(135deg, hsl(160, 40%, 12%), hsl(224, 40%, 15%));
-    --gradient-hero: linear-gradient(180deg, hsl(220, 20%, 9%), hsl(220, 20%, 7%));
+    --gradient-primary: linear-gradient(135deg, hsl(158 64% 38%), hsl(168 70% 42%));
+    --gradient-card: linear-gradient(135deg, hsl(158 40% 14%), hsl(222 25% 13%));
+    --gradient-hero: linear-gradient(180deg, hsl(222 28% 9%), hsl(222 28% 8%));
+    --gradient-balance: linear-gradient(135deg, hsl(158 64% 28%), hsl(168 64% 34%), hsl(217 60% 36%));
 
-    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.2);
-    --shadow-md: 0 4px 16px -2px hsl(0 0% 0% / 0.3);
-    --shadow-lg: 0 10px 30px -5px hsl(0 0% 0% / 0.4);
-    --shadow-card: 0 2px 12px -2px hsl(160 84% 39% / 0.15);
+    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 4px 16px -4px hsl(0 0% 0% / 0.4);
+    --shadow-lg: 0 12px 32px -8px hsl(0 0% 0% / 0.5);
+    --shadow-card: 0 2px 12px -2px hsl(158 64% 30% / 0.18);
+    --shadow-elevated: 0 16px 40px -12px hsl(158 64% 30% / 0.35);
 
-    --sidebar-background: 220 20% 10%;
-    --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 160 84% 39%;
+    --sidebar-background: 222 25% 11%;
+    --sidebar-foreground: 210 25% 96%;
+    --sidebar-primary: 158 64% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 20% 15%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 220 20% 18%;
-    --sidebar-ring: 160 84% 39%;
+    --sidebar-accent: 222 20% 16%;
+    --sidebar-accent-foreground: 210 25% 96%;
+    --sidebar-border: 222 20% 20%;
+    --sidebar-ring: 158 64% 42%;
   }
 }
 
@@ -116,35 +134,40 @@
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground font-sans antialiased;
-  }
-
   html {
     scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv11", "ss01", "ss03";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
+  }
+
+  /* Typography scale — fintech standard */
+  h1 { @apply text-3xl md:text-4xl font-bold leading-tight; }
+  h2 { @apply text-2xl md:text-3xl font-semibold leading-snug; }
+  h3 { @apply text-lg md:text-xl font-semibold leading-snug; }
+
+  /* Numeric alignment for currency */
+  .tabular { font-variant-numeric: tabular-nums; }
 }
 
 @layer utilities {
-  .gradient-primary {
-    background: var(--gradient-primary);
-  }
+  .gradient-primary  { background: var(--gradient-primary); }
+  .gradient-card     { background: var(--gradient-card); }
+  .gradient-hero     { background: var(--gradient-hero); }
+  .gradient-balance  { background: var(--gradient-balance); }
 
-  .gradient-card {
-    background: var(--gradient-card);
-  }
-
-  .gradient-hero {
-    background: var(--gradient-hero);
-  }
-
-  .shadow-card {
-    box-shadow: var(--shadow-card);
-  }
-
-  .shadow-soft {
-    box-shadow: var(--shadow-md);
-  }
+  .shadow-card     { box-shadow: var(--shadow-card); }
+  .shadow-soft     { box-shadow: var(--shadow-md); }
+  .shadow-elevated { box-shadow: var(--shadow-elevated); }
 
   .text-gradient {
     background: var(--gradient-primary);
@@ -152,18 +175,25 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
+  .glass {
+    background: hsl(var(--card) / 0.7);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+  }
+
+  .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+  .num { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 }
 
 @layer components {
-  .status-paid {
-    @apply bg-accent text-accent-foreground;
-  }
+  .status-paid    { @apply bg-accent text-accent-foreground; }
+  .status-pending { @apply bg-warning/10 text-warning; }
+  .status-overdue { @apply bg-destructive/10 text-destructive; }
 
-  .status-pending {
-    @apply bg-warning/10 text-warning;
-  }
-
-  .status-overdue {
-    @apply bg-destructive/10 text-destructive;
+  /* Reusable fintech card */
+  .fin-card {
+    @apply rounded-2xl bg-card shadow-card border border-border/60;
   }
 }
