@@ -9,7 +9,7 @@ export default function BottomNav() {
   const isSolo = account.mode === "solo";
 
   const navItems = [
-    { path: "/dashboard", icon: Home, label: "Home" },
+    { path: "/dashboard", icon: Home, label: "Dashboard" },
     { path: "/utilities", icon: BarChart3, label: "Utilities" },
     { path: "/wallet", icon: Wallet, label: "Wallet" },
     isSolo
