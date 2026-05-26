@@ -49,8 +49,12 @@ function loadState(): WalletState {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch {}
-  // New users start with a clean slate (no balance, no transactions, no reminders)
-  if (localStorage.getItem("tipidpay_new_user") === "1") {
+  // New users (or users who skipped the survey via Track Bills mode)
+  // start with a clean slate — no balance, no transactions, no reminders.
+  if (
+    localStorage.getItem("tipidpay_new_user") === "1" ||
+    localStorage.getItem("tipidpay_track_mode") === "1"
+  ) {
     return getEmptyState();
   }
   return getDefaultState();
