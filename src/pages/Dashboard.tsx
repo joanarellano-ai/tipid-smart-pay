@@ -38,8 +38,10 @@ export default function Dashboard() {
     return { thisMonthTotal: total, predictions: preds, chartData: chart };
   }, [entries]);
 
-  const totalPredicted = predictions.reduce((s, p) => s + p.predictedAmount, 0);
-  const avgConfidence = Math.round(predictions.reduce((s, p) => s + p.confidence, 0) / predictions.length);
+  const totalPredicted = predictions.reduce((s, p) => s + (p.predictedAmount || 0), 0);
+  const avgConfidence = predictions.length > 0
+    ? Math.round(predictions.reduce((s, p) => s + (p.confidence || 0), 0) / predictions.length)
+    : 0;
   const trend = thisMonthTotal > 0 ? Math.round(((totalPredicted - thisMonthTotal) / thisMonthTotal) * 100) : 0;
 
   const quickActions = isSolo
