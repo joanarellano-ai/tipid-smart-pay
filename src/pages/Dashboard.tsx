@@ -6,7 +6,20 @@ import { useAccount } from "@/lib/accountStore";
 import { billHistoryStore, useBillHistory, getUtilityMeta } from "@/lib/billHistoryStore";
 import { LineChart, Line, ResponsiveContainer, XAxis, Tooltip } from "recharts";
 import NotificationBell from "@/components/NotificationBell";
+import { PremiumBanner } from "@/components/premium/PremiumBanner";
+import { usePremium } from "@/lib/premiumStore";
+import { Crown } from "lucide-react";
 import { useMemo } from "react";
+
+function PremiumBadge() {
+  const { isPremium } = usePremium();
+  if (!isPremium) return null;
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(38_70%_42%)] px-2 py-0.5 text-[9px] font-bold text-[hsl(220_60%_15%)] shadow-sm">
+      <Crown className="h-2.5 w-2.5" /> PRO
+    </span>
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -62,16 +75,22 @@ export default function Dashboard() {
     <div className="px-4 pt-14 pb-4">
       <div className="mx-auto max-w-lg">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between animate-fade-in">
+        <div className="mb-5 flex items-center justify-between animate-fade-in">
           <div>
             <p className="text-sm text-muted-foreground">Good morning,</p>
-            <h1 className="text-xl font-bold text-foreground">{displayName.split(" ")[0]} 👋</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-foreground">{displayName.split(" ")[0]} 👋</h1>
+              <PremiumBadge />
+            </div>
             <span className="mt-1 inline-block rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
               {isSolo ? "🏠 Solo Mode" : `👥 ${account.groupName}`}
             </span>
           </div>
           <NotificationBell />
         </div>
+
+        {/* Premium Banner */}
+        <PremiumBanner />
 
         {/* Alerts */}
         <div className="mb-5 space-y-2 animate-fade-in" style={{ animationDelay: "0.05s" }}>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { currentUser, badges } from "@/lib/data";
 import { useUser, userStore } from "@/lib/userStore";
 import { useAccount, accountStore } from "@/lib/accountStore";
-import { ChevronRight, Moon, Sun, Bell, Shield, HelpCircle, LogOut, Edit3, Users, Home as HomeIcon, History, ClipboardList } from "lucide-react";
+import { ChevronRight, Moon, Sun, Bell, Shield, HelpCircle, LogOut, Edit3, Users, Home as HomeIcon, History, ClipboardList, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,7 @@ export default function Profile() {
 
   const menuItems = [
     { icon: Edit3, label: "Edit Profile", action: () => setEditOpen(true) },
+    { icon: Crown, label: "TipidPay Premium", action: () => navigate("/premium"), highlight: true },
     { icon: isSolo ? Users : HomeIcon, label: `Switch to ${isSolo ? "Group" : "Solo"} Mode`, action: () => setModeOpen(true) },
     { icon: History, label: "Bill History", action: () => navigate("/bill-history") },
     { icon: ClipboardList, label: "Update Bill Survey", action: () => navigate("/bill-survey") },
@@ -120,21 +121,31 @@ export default function Profile() {
 
         {/* Menu */}
         <div className="rounded-2xl bg-card shadow-card animate-fade-in" style={{ animationDelay: "0.2s" }}>
-          {menuItems.map((item, i) => (
-            <button
-              key={item.label}
-              onClick={item.action}
-              className={cn(
-                "flex w-full items-center gap-3 p-4 transition-colors hover:bg-accent",
-                i < menuItems.length - 1 && "border-b border-border",
-                item.destructive && "text-destructive"
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-          ))}
+          {menuItems.map((item, i) => {
+            const highlight = (item as { highlight?: boolean }).highlight;
+            const destructive = (item as { destructive?: boolean }).destructive;
+            return (
+              <button
+                key={item.label}
+                onClick={item.action}
+                className={cn(
+                  "flex w-full items-center gap-3 p-4 transition-colors hover:bg-accent",
+                  i < menuItems.length - 1 && "border-b border-border",
+                  destructive && "text-destructive",
+                  highlight && "text-[hsl(var(--gold))]"
+                )}
+              >
+                <item.icon className={cn("h-5 w-5", highlight && "text-[hsl(var(--gold))]")} />
+                <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
+                {highlight && (
+                  <span className="rounded-full bg-[hsl(var(--gold)/0.15)] px-2 py-0.5 text-[9px] font-bold uppercase text-[hsl(var(--gold))]">
+                    PRO
+                  </span>
+                )}
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+            );
+          })}
         </div>
       </div>
 
