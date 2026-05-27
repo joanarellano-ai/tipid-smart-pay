@@ -110,6 +110,11 @@ function emit() {
 export const walletStore = {
   getState: () => state,
 
+  resetEmpty() {
+    state = getEmptyState();
+    emit();
+  },
+
   topUp(amount: number) {
     state = {
       ...state,
