@@ -6,6 +6,9 @@ import { useAccount } from "@/lib/accountStore";
 import { billHistoryStore, useBillHistory, getUtilityMeta } from "@/lib/billHistoryStore";
 import { LineChart, Line, ResponsiveContainer, XAxis, Tooltip } from "recharts";
 import NotificationBell from "@/components/NotificationBell";
+import { PremiumBanner } from "@/components/premium/PremiumBanner";
+import { usePremium } from "@/lib/premiumStore";
+import { Crown } from "lucide-react";
 import { useMemo } from "react";
 
 export default function Dashboard() {
@@ -62,16 +65,10 @@ export default function Dashboard() {
     <div className="px-4 pt-14 pb-4">
       <div className="mx-auto max-w-lg">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between animate-fade-in">
-          <div>
-            <p className="text-sm text-muted-foreground">Good morning,</p>
-            <h1 className="text-xl font-bold text-foreground">{displayName.split(" ")[0]} 👋</h1>
-            <span className="mt-1 inline-block rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
-              {isSolo ? "🏠 Solo Mode" : `👥 ${account.groupName}`}
-            </span>
-          </div>
-          <NotificationBell />
-        </div>
+        <DashboardHeader displayName={displayName} isSolo={isSolo} groupName={account.groupName} />
+
+        {/* Premium Banner */}
+        <PremiumBanner />
 
         {/* Alerts */}
         <div className="mb-5 space-y-2 animate-fade-in" style={{ animationDelay: "0.05s" }}>
