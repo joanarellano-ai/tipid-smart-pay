@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { billHistoryStore, getUtilityMeta, type BillEntry, type Utility } from "@/lib/billHistoryStore";
+import { walletStore } from "@/lib/walletStore";
 import { toast } from "sonner";
 import { ArrowRight, ArrowLeft, Sparkles, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -152,13 +153,12 @@ export default function BillSurvey() {
       billHistoryStore.replaceAll([]);
       localStorage.removeItem("tipidpay_new_user");
       localStorage.removeItem("tipidpay_skip_bills");
-      localStorage.removeItem("tipidpay_wallet");
       localStorage.setItem("tipidpay_track_mode", "1");
-      // Force wallet store to reload empty state on next read
-      if (typeof window !== "undefined") window.location.assign("/reminders");
+      walletStore.resetEmpty();
       toast.info("Bill tracking enabled", {
         description: "Add at least 1 bill with payment status to unlock predictions.",
       });
+      navigate("/reminders");
     };
 
     return (
