@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { billHistoryStore, getUtilityMeta, type BillEntry, type Utility } from "@/lib/billHistoryStore";
+import { walletStore } from "@/lib/walletStore";
 import { toast } from "sonner";
 import { ArrowRight, ArrowLeft, Sparkles, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
