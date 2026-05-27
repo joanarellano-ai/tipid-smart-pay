@@ -2,7 +2,7 @@ import { useState } from "react";
 import { currentUser, badges } from "@/lib/data";
 import { useUser, userStore } from "@/lib/userStore";
 import { useAccount, accountStore } from "@/lib/accountStore";
-import { ChevronRight, Moon, Sun, Bell, Shield, HelpCircle, LogOut, Edit3, Users, Home as HomeIcon, History, ClipboardList } from "lucide-react";
+import { ChevronRight, Moon, Sun, Bell, Shield, HelpCircle, LogOut, Edit3, Users, Home as HomeIcon, History, ClipboardList, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,7 @@ export default function Profile() {
 
   const menuItems = [
     { icon: Edit3, label: "Edit Profile", action: () => setEditOpen(true) },
+    { icon: Crown, label: "TipidPay Premium", action: () => navigate("/premium"), highlight: true },
     { icon: isSolo ? Users : HomeIcon, label: `Switch to ${isSolo ? "Group" : "Solo"} Mode`, action: () => setModeOpen(true) },
     { icon: History, label: "Bill History", action: () => navigate("/bill-history") },
     { icon: ClipboardList, label: "Update Bill Survey", action: () => navigate("/bill-survey") },

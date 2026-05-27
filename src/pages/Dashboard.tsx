@@ -11,6 +11,16 @@ import { usePremium } from "@/lib/premiumStore";
 import { Crown } from "lucide-react";
 import { useMemo } from "react";
 
+function PremiumBadge() {
+  const { isPremium } = usePremium();
+  if (!isPremium) return null;
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(38_70%_42%)] px-2 py-0.5 text-[9px] font-bold text-[hsl(220_60%_15%)] shadow-sm">
+      <Crown className="h-2.5 w-2.5" /> PRO
+    </span>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const user = useUser();
