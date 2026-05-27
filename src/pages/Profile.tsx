@@ -121,21 +121,31 @@ export default function Profile() {
 
         {/* Menu */}
         <div className="rounded-2xl bg-card shadow-card animate-fade-in" style={{ animationDelay: "0.2s" }}>
-          {menuItems.map((item, i) => (
-            <button
-              key={item.label}
-              onClick={item.action}
-              className={cn(
-                "flex w-full items-center gap-3 p-4 transition-colors hover:bg-accent",
-                i < menuItems.length - 1 && "border-b border-border",
-                item.destructive && "text-destructive"
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-          ))}
+          {menuItems.map((item, i) => {
+            const highlight = (item as { highlight?: boolean }).highlight;
+            const destructive = (item as { destructive?: boolean }).destructive;
+            return (
+              <button
+                key={item.label}
+                onClick={item.action}
+                className={cn(
+                  "flex w-full items-center gap-3 p-4 transition-colors hover:bg-accent",
+                  i < menuItems.length - 1 && "border-b border-border",
+                  destructive && "text-destructive",
+                  highlight && "text-[hsl(var(--gold))]"
+                )}
+              >
+                <item.icon className={cn("h-5 w-5", highlight && "text-[hsl(var(--gold))]")} />
+                <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
+                {highlight && (
+                  <span className="rounded-full bg-[hsl(var(--gold)/0.15)] px-2 py-0.5 text-[9px] font-bold uppercase text-[hsl(var(--gold))]">
+                    PRO
+                  </span>
+                )}
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+            );
+          })}
         </div>
       </div>
 
