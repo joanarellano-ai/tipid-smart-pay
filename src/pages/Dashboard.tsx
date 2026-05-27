@@ -65,7 +65,19 @@ export default function Dashboard() {
     <div className="px-4 pt-14 pb-4">
       <div className="mx-auto max-w-lg">
         {/* Header */}
-        <DashboardHeader displayName={displayName} isSolo={isSolo} groupName={account.groupName} />
+        <div className="mb-5 flex items-center justify-between animate-fade-in">
+          <div>
+            <p className="text-sm text-muted-foreground">Good morning,</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-foreground">{displayName.split(" ")[0]} 👋</h1>
+              <PremiumBadge />
+            </div>
+            <span className="mt-1 inline-block rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
+              {isSolo ? "🏠 Solo Mode" : `👥 ${account.groupName}`}
+            </span>
+          </div>
+          <NotificationBell />
+        </div>
 
         {/* Premium Banner */}
         <PremiumBanner />
