@@ -22,6 +22,7 @@ import BillSurvey from "./pages/BillSurvey";
 import SplitBills from "./pages/SplitBills";
 import VacationDashboard from "./pages/VacationDashboard";
 import Premium from "./pages/Premium";
+import AdminDashboard from "./pages/AdminDashboard";
 import AppShell from "./components/AppShell";
 import NotFound from "./pages/NotFound";
 
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/splits" element={<SplitBills />} />
             <Route path="/trips" element={<VacationDashboard />} />
             <Route path="/premium" element={<Premium />} />
+            <Route path="/admin" element={<AdminDashboard />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

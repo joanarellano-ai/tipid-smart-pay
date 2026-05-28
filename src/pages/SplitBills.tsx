@@ -24,6 +24,8 @@ import {
   type SplitParticipant,
   type SplitItem,
 } from "@/lib/splitStore";
+import { usePremium, FREE_SPLIT_MEMBER_LIMIT, hasFeature } from "@/lib/premiumStore";
+import { Crown } from "lucide-react";
 
 const CATEGORY_META: Record<SplitCategory, { icon: any; label: string; tone: string }> = {
   vacation: { icon: Plane, label: "Vacation / Trip", tone: "bg-info/10 text-info" },
@@ -137,6 +139,7 @@ function CreateSplitDialog({
   onCreated: (id: string) => void;
 }) {
   const [title, setTitle] = useState("");
+  const navigate = useNavigate();
   const [category, setCategory] = useState<SplitCategory>("vacation");
   const [total, setTotal] = useState("");
   const [namesText, setNamesText] = useState("Me, ");
@@ -152,12 +155,22 @@ function CreateSplitDialog({
     setNotes("");
   };
 
+  const { plan } = usePremium();
+  const unlimited = hasFeature(plan, "unlimitedSplitMembers");
+
   const submit = () => {
     if (!title.trim()) return toast.error("Add a title");
     const totalNum = parseFloat(total);
     if (!Number.isFinite(totalNum) || totalNum <= 0) return toast.error("Enter a valid total amount");
     const names = namesText.split(",").map((n) => n.trim()).filter(Boolean);
     if (names.length < 2) return toast.error("Add at least 2 participants (comma-separated)");
+    if (!unlimited && names.length > FREE_SPLIT_MEMBER_LIMIT) {
+      return toast.error("Free plan limit reached", {
+        description: `Free plan supports up to ${FREE_SPLIT_MEMBER_LIMIT} members. Upgrade to Premium for unlimited.`,
+        action: { label: "Upgrade", onClick: () => navigate("/premium") },
+      });
+    }
+
 
     const participants: SplitParticipant[] = names.map((n, i) => ({
       id: newId(),
@@ -261,6 +274,9 @@ function CreateSplitDialog({
 /* ─────────── Detail view ─────────── */
 
 function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) {
+  const navigate = useNavigate();
+  const { plan } = usePremium();
+  const unlimited = hasFeature(plan, "unlimitedSplitMembers");
   const owed = useMemo(() => computeOwed(bill), [bill]);
   const remaining = useMemo(() => computeRemaining(bill), [bill]);
   const meta = CATEGORY_META[bill.category];
@@ -302,6 +318,12 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
     if (!name) return toast.error("Enter a name");
     if (bill.participants.some((p) => p.name.toLowerCase() === name.toLowerCase()))
       return toast.error("Name already in this split");
+    if (!unlimited && bill.participants.length >= FREE_SPLIT_MEMBER_LIMIT) {
+      return toast.error("Free plan limit reached", {
+        description: `Up to ${FREE_SPLIT_MEMBER_LIMIT} members on Free. Upgrade for unlimited.`,
+        action: { label: "Upgrade", onClick: () => navigate("/premium") },
+      });
+    }
     splitStore.addParticipant(bill.id, name);
     setNewName("");
     toast.success(`${name} added`);

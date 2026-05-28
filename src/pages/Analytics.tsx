@@ -1,10 +1,13 @@
 import { spendingBreakdown, savingsTrend, totalBill, formatPeso } from "@/lib/data";
 import { PieChart, Pie, Cell, ResponsiveContainer, XAxis, Tooltip, BarChart, Bar } from "recharts";
-import { TrendingDown, Target, Leaf, Lock, Sparkles } from "lucide-react";
+import { TrendingDown, Target, Leaf, Lock, Sparkles, Bot, FileBarChart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useBillHistory } from "@/lib/billHistoryStore";
 import { useWallet } from "@/lib/walletStore";
 import { Button } from "@/components/ui/button";
+import { usePremium, hasFeature } from "@/lib/premiumStore";
+import { LockedFeature } from "@/components/premium/PremiumBanner";
+import { toast } from "sonner";
 
 const budgetLimit = 6000;
 
@@ -12,6 +15,9 @@ export default function Analytics() {
   const navigate = useNavigate();
   const billHistory = useBillHistory();
   const wallet = useWallet();
+  const { plan } = usePremium();
+  const advancedUnlocked = hasFeature(plan, "advancedAnalytics");
+  const canExport = hasFeature(plan, "exportReports");
   const trackedCount = wallet.reminders.filter((r) => r.tracked).length;
   const hasData = billHistory.length > 0 || trackedCount > 0;
   const trackMode = typeof window !== "undefined" && localStorage.getItem("tipidpay_track_mode") === "1";
@@ -146,6 +152,49 @@ export default function Analytics() {
             </div>
           </div>
         </div>
+
+        {/* Premium-gated: AI Financial Coach */}
+        <div className="mt-5">
+          {advancedUnlocked ? (
+            <div className="rounded-2xl border border-[hsl(var(--gold))]/30 bg-gradient-to-br from-card to-[hsl(var(--gold)/0.05)] p-5 shadow-card animate-fade-in">
+              <div className="mb-2 flex items-center gap-2">
+                <Bot className="h-5 w-5 text-[hsl(var(--gold))]" />
+                <h3 className="font-semibold text-foreground">AI Financial Coach</h3>
+                <span className="ml-auto rounded-full bg-[hsl(var(--gold)/0.15)] px-2 py-0.5 text-[9px] font-bold uppercase text-[hsl(var(--gold))]">PRO</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Your electricity spend is trending 12% above your 3-month average. Try shifting AC use to off-peak (10 PM–6 AM) to save an estimated ₱420 next month.</p>
+            </div>
+          ) : (
+            <LockedFeature
+              title="AI Financial Coach"
+              description="Personalized weekly insights powered by your bill patterns. Premium only."
+            >
+              <div className="p-5">
+                <div className="mb-3 h-4 w-3/4 rounded bg-muted" />
+                <div className="mb-2 h-3 w-full rounded bg-muted" />
+                <div className="mb-2 h-3 w-5/6 rounded bg-muted" />
+                <div className="h-3 w-4/6 rounded bg-muted" />
+              </div>
+            </LockedFeature>
+          )}
+        </div>
+
+        {/* Export reports */}
+        <Button
+          variant="outline"
+          className="mt-4 h-11 w-full rounded-2xl"
+          onClick={() => {
+            if (!canExport) {
+              toast.error("PDF export is a Premium feature", { action: { label: "Upgrade", onClick: () => navigate("/premium") } });
+              return;
+            }
+            toast.success("Report exported", { description: "Your PDF is being prepared." });
+          }}
+        >
+          <FileBarChart className="mr-1 h-4 w-4" />
+          Export PDF report
+          {!canExport && <Lock className="ml-2 h-3 w-3 text-[hsl(var(--gold))]" />}
+        </Button>
       </div>
     </div>
   );
