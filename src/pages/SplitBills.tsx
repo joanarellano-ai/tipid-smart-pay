@@ -154,12 +154,22 @@ function CreateSplitDialog({
     setNotes("");
   };
 
+  const { plan } = usePremium();
+  const unlimited = hasFeature(plan, "unlimitedSplitMembers");
+
   const submit = () => {
     if (!title.trim()) return toast.error("Add a title");
     const totalNum = parseFloat(total);
     if (!Number.isFinite(totalNum) || totalNum <= 0) return toast.error("Enter a valid total amount");
     const names = namesText.split(",").map((n) => n.trim()).filter(Boolean);
     if (names.length < 2) return toast.error("Add at least 2 participants (comma-separated)");
+    if (!unlimited && names.length > FREE_SPLIT_MEMBER_LIMIT) {
+      return toast.error("Free plan limit reached", {
+        description: `Free plan supports up to ${FREE_SPLIT_MEMBER_LIMIT} members. Upgrade to Premium for unlimited.`,
+        action: { label: "Upgrade", onClick: () => navigate("/premium") },
+      });
+    }
+
 
     const participants: SplitParticipant[] = names.map((n, i) => ({
       id: newId(),
