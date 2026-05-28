@@ -318,6 +318,12 @@ function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) 
     if (!name) return toast.error("Enter a name");
     if (bill.participants.some((p) => p.name.toLowerCase() === name.toLowerCase()))
       return toast.error("Name already in this split");
+    if (!unlimited && bill.participants.length >= FREE_SPLIT_MEMBER_LIMIT) {
+      return toast.error("Free plan limit reached", {
+        description: `Up to ${FREE_SPLIT_MEMBER_LIMIT} members on Free. Upgrade for unlimited.`,
+        action: { label: "Upgrade", onClick: () => navigate("/premium") },
+      });
+    }
     splitStore.addParticipant(bill.id, name);
     setNewName("");
     toast.success(`${name} added`);
