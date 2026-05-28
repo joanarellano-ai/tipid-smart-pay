@@ -139,6 +139,7 @@ function CreateSplitDialog({
   onCreated: (id: string) => void;
 }) {
   const [title, setTitle] = useState("");
+  const navigate = useNavigate();
   const [category, setCategory] = useState<SplitCategory>("vacation");
   const [total, setTotal] = useState("");
   const [namesText, setNamesText] = useState("Me, ");
