@@ -53,9 +53,12 @@ export default function Profile() {
 
   const isSolo = account.mode === "solo";
 
+  const { isAdmin, isPremium } = usePremium();
+
   const menuItems = [
     { icon: Edit3, label: "Edit Profile", action: () => setEditOpen(true) },
-    { icon: Crown, label: "TipidPay Premium", action: () => navigate("/premium"), highlight: true },
+    { icon: Crown, label: isPremium ? "Manage Premium" : "TipidPay Premium", action: () => navigate("/premium"), highlight: true },
+    ...(isAdmin ? [{ icon: Building2, label: "Admin Dashboard", action: () => navigate("/admin"), highlight: true }] : []),
     { icon: isSolo ? Users : HomeIcon, label: `Switch to ${isSolo ? "Group" : "Solo"} Mode`, action: () => setModeOpen(true) },
     { icon: History, label: "Bill History", action: () => navigate("/bill-history") },
     { icon: ClipboardList, label: "Update Bill Survey", action: () => navigate("/bill-survey") },
