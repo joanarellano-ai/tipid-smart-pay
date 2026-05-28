@@ -274,6 +274,9 @@ function CreateSplitDialog({
 /* ─────────── Detail view ─────────── */
 
 function SplitDetail({ bill, onBack }: { bill: SplitBill; onBack: () => void }) {
+  const navigate = useNavigate();
+  const { plan } = usePremium();
+  const unlimited = hasFeature(plan, "unlimitedSplitMembers");
   const owed = useMemo(() => computeOwed(bill), [bill]);
   const remaining = useMemo(() => computeRemaining(bill), [bill]);
   const meta = CATEGORY_META[bill.category];
