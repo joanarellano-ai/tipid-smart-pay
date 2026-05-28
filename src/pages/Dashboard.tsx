@@ -92,20 +92,22 @@ export default function Dashboard() {
         {/* Premium Banner */}
         <PremiumBanner />
 
-        {/* Alerts */}
-        <div className="mb-5 space-y-2 animate-fade-in" style={{ animationDelay: "0.05s" }}>
-          {alerts.map((a, i) => (
-            <div
-              key={i}
-              className={`flex items-start gap-3 rounded-xl p-3 text-sm ${
-                a.type === "warning" ? "bg-warning/10 text-warning" : "bg-accent text-accent-foreground"
-              }`}
-            >
-              {a.type === "warning" ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> : <Lightbulb className="mt-0.5 h-4 w-4 shrink-0" />}
-              <span>{a.message}</span>
-            </div>
-          ))}
-        </div>
+        {/* Alerts — only when user has bill data */}
+        {entries.length > 0 && (
+          <div className="mb-5 space-y-2 animate-fade-in" style={{ animationDelay: "0.05s" }}>
+            {alerts.map((a, i) => (
+              <div
+                key={i}
+                className={`flex items-start gap-3 rounded-xl p-3 text-sm ${
+                  a.type === "warning" ? "bg-warning/10 text-warning" : "bg-accent text-accent-foreground"
+                }`}
+              >
+                {a.type === "warning" ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> : <Lightbulb className="mt-0.5 h-4 w-4 shrink-0" />}
+                <span>{a.message}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Total Bill Card / Empty state */}
         {entries.length === 0 ? (() => {
