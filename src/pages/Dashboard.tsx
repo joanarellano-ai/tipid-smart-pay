@@ -92,20 +92,22 @@ export default function Dashboard() {
         {/* Premium Banner */}
         <PremiumBanner />
 
-        {/* Alerts */}
-        <div className="mb-5 space-y-2 animate-fade-in" style={{ animationDelay: "0.05s" }}>
-          {alerts.map((a, i) => (
-            <div
-              key={i}
-              className={`flex items-start gap-3 rounded-xl p-3 text-sm ${
-                a.type === "warning" ? "bg-warning/10 text-warning" : "bg-accent text-accent-foreground"
-              }`}
-            >
-              {a.type === "warning" ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> : <Lightbulb className="mt-0.5 h-4 w-4 shrink-0" />}
-              <span>{a.message}</span>
-            </div>
-          ))}
-        </div>
+        {/* Alerts — only when user has bill data */}
+        {entries.length > 0 && (
+          <div className="mb-5 space-y-2 animate-fade-in" style={{ animationDelay: "0.05s" }}>
+            {alerts.map((a, i) => (
+              <div
+                key={i}
+                className={`flex items-start gap-3 rounded-xl p-3 text-sm ${
+                  a.type === "warning" ? "bg-warning/10 text-warning" : "bg-accent text-accent-foreground"
+                }`}
+              >
+                {a.type === "warning" ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> : <Lightbulb className="mt-0.5 h-4 w-4 shrink-0" />}
+                <span>{a.message}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Total Bill Card / Empty state */}
         {entries.length === 0 ? (() => {
@@ -189,30 +191,32 @@ export default function Dashboard() {
           <ArrowRight className="h-4 w-4 text-muted-foreground" />
         </button>
 
-        {/* Usage Chart */}
-        <div className="mb-5 rounded-2xl bg-card p-5 shadow-card animate-fade-in" style={{ animationDelay: "0.2s" }}>
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-semibold text-foreground">Usage Trends</h3>
-            <button onClick={() => navigate("/analytics")} className="text-xs text-primary hover:underline">
-              See all <ArrowRight className="inline h-3 w-3" />
-            </button>
+        {/* Usage Chart — only when user has bill data */}
+        {entries.length > 0 && (
+          <div className="mb-5 rounded-2xl bg-card p-5 shadow-card animate-fade-in" style={{ animationDelay: "0.2s" }}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-semibold text-foreground">Usage Trends</h3>
+              <button onClick={() => navigate("/analytics")} className="text-xs text-primary hover:underline">
+                See all <ArrowRight className="inline h-3 w-3" />
+              </button>
+            </div>
+            <ResponsiveContainer width="100%" height={140}>
+              <LineChart data={chartData}>
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(215, 16%, 47%)" }} />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 12,
+                    border: "none",
+                    boxShadow: "0 4px 16px -2px rgba(0,0,0,0.08)",
+                    fontSize: 12,
+                  }}
+                />
+                <Line type="monotone" dataKey="electricity" stroke="hsl(160, 84%, 39%)" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="water" stroke="hsl(224, 73%, 33%)" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-          <ResponsiveContainer width="100%" height={140}>
-            <LineChart data={chartData}>
-              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(215, 16%, 47%)" }} />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: 12,
-                  border: "none",
-                  boxShadow: "0 4px 16px -2px rgba(0,0,0,0.08)",
-                  fontSize: 12,
-                }}
-              />
-              <Line type="monotone" dataKey="electricity" stroke="hsl(160, 84%, 39%)" strokeWidth={2.5} dot={false} />
-              <Line type="monotone" dataKey="water" stroke="hsl(224, 73%, 33%)" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        )}
 
         {/* Bills Breakdown */}
         {entries.length > 0 && (
