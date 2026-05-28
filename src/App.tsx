@@ -55,6 +55,7 @@ const App = () => (
             <Route path="/splits" element={<SplitBills />} />
             <Route path="/trips" element={<VacationDashboard />} />
             <Route path="/premium" element={<Premium />} />
+            <Route path="/admin" element={<AdminDashboard />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
