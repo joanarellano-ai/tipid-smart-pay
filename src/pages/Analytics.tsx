@@ -15,6 +15,9 @@ export default function Analytics() {
   const navigate = useNavigate();
   const billHistory = useBillHistory();
   const wallet = useWallet();
+  const { plan } = usePremium();
+  const advancedUnlocked = hasFeature(plan, "advancedAnalytics");
+  const canExport = hasFeature(plan, "exportReports");
   const trackedCount = wallet.reminders.filter((r) => r.tracked).length;
   const hasData = billHistory.length > 0 || trackedCount > 0;
   const trackMode = typeof window !== "undefined" && localStorage.getItem("tipidpay_track_mode") === "1";
