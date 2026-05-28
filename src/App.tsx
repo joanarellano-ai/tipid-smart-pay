@@ -22,6 +22,7 @@ import BillSurvey from "./pages/BillSurvey";
 import SplitBills from "./pages/SplitBills";
 import VacationDashboard from "./pages/VacationDashboard";
 import Premium from "./pages/Premium";
+import AdminDashboard from "./pages/AdminDashboard";
 import AppShell from "./components/AppShell";
 import NotFound from "./pages/NotFound";
 
