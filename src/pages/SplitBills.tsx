@@ -24,6 +24,8 @@ import {
   type SplitParticipant,
   type SplitItem,
 } from "@/lib/splitStore";
+import { usePremium, FREE_SPLIT_MEMBER_LIMIT, hasFeature } from "@/lib/premiumStore";
+import { Crown } from "lucide-react";
 
 const CATEGORY_META: Record<SplitCategory, { icon: any; label: string; tone: string }> = {
   vacation: { icon: Plane, label: "Vacation / Trip", tone: "bg-info/10 text-info" },
