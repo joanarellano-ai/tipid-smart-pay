@@ -1,10 +1,13 @@
 import { spendingBreakdown, savingsTrend, totalBill, formatPeso } from "@/lib/data";
 import { PieChart, Pie, Cell, ResponsiveContainer, XAxis, Tooltip, BarChart, Bar } from "recharts";
-import { TrendingDown, Target, Leaf, Lock, Sparkles } from "lucide-react";
+import { TrendingDown, Target, Leaf, Lock, Sparkles, Bot, FileBarChart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useBillHistory } from "@/lib/billHistoryStore";
 import { useWallet } from "@/lib/walletStore";
 import { Button } from "@/components/ui/button";
+import { usePremium, hasFeature } from "@/lib/premiumStore";
+import { LockedFeature } from "@/components/premium/PremiumBanner";
+import { toast } from "sonner";
 
 const budgetLimit = 6000;
 
