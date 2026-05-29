@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, Check, X } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, Check, X, Cake } from "lucide-react";
 import { toast } from "sonner";
 import { userStore, capitalize } from "@/lib/userStore";
 import logo from "@/assets/tipidpay-logo.png";
