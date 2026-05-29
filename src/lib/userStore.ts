@@ -70,11 +70,13 @@ export const userStore = {
     const middleInitial = (data.middleInitial ?? userData.middleInitial).trim();
     const lastName = (data.lastName ?? userData.lastName).trim();
     const email = (data.email ?? userData.email).trim();
+    const birthday = (data.birthday ?? userData.birthday).trim();
     userData = {
       firstName,
       middleInitial,
       lastName,
       email,
+      birthday,
       fullName: formatFullName(firstName, middleInitial, lastName),
     };
     persist();
