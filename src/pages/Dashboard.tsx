@@ -84,9 +84,9 @@ export default function Dashboard() {
         {/* Header */}
         <div className="mb-5 flex items-center justify-between animate-fade-in">
           <div>
-            <p className="text-sm text-muted-foreground">Good morning,</p>
+            <p className="text-sm text-muted-foreground">{greeting},</p>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-foreground">{displayName.split(" ")[0]} 👋</h1>
+              <h1 className="text-xl font-bold text-foreground">{firstName} 👋</h1>
               <PremiumBadge />
             </div>
             <span className="mt-1 inline-block rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
