@@ -227,7 +227,7 @@ export default function SignUp() {
               <div className="relative mt-1">
                 <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="joan@example.com"
+                  placeholder="Enter your email address"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
