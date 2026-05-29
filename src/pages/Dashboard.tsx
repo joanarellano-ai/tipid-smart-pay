@@ -32,7 +32,8 @@ export default function Dashboard() {
   const user = useUser();
   const account = useAccount();
   const entries = useBillHistory();
-  const displayName = user.fullName || currentUser.name;
+  const firstName = user.firstName || "there";
+  const greeting = greetingForHour(new Date().getHours());
   const isSolo = account.mode === "solo";
 
   // Compute current month total from latest entries + predictions
