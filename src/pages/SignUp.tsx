@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 interface FieldErrors {
   firstName?: string;
   lastName?: string;
+  birthday?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
@@ -21,10 +22,13 @@ interface FormValues {
   firstName: string;
   middleInitial: string;
   lastName: string;
+  birthday: string;
   email: string;
   password: string;
   confirmPassword: string;
 }
+
+const MIN_AGE_YEARS = 13;
 
 function validate(v: FormValues): FieldErrors {
   const errors: FieldErrors = {};
@@ -33,6 +37,18 @@ function validate(v: FormValues): FieldErrors {
 
   if (!v.lastName.trim()) errors.lastName = "Last name is required";
   else if (v.lastName.trim().length > 50) errors.lastName = "Max 50 characters";
+
+  if (!v.birthday) errors.birthday = "Birthday is required";
+  else {
+    const d = new Date(v.birthday);
+    if (isNaN(d.getTime())) errors.birthday = "Invalid date";
+    else {
+      const now = new Date();
+      const minDob = new Date(now.getFullYear() - MIN_AGE_YEARS, now.getMonth(), now.getDate());
+      if (d > now) errors.birthday = "Birthday can't be in the future";
+      else if (d > minDob) errors.birthday = `You must be at least ${MIN_AGE_YEARS} years old`;
+    }
+  }
 
   const email = v.email.trim();
   if (!email) errors.email = "Email is required";
