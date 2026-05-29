@@ -138,13 +138,13 @@ export default function SignUp() {
               Personal Information
             </h2>
 
-            <div className="grid grid-cols-[1fr_64px] gap-2">
+            <div className="grid grid-cols-[1fr_72px] gap-2">
               <div>
                 <Label className="text-xs text-muted-foreground">First Name</Label>
                 <div className="relative mt-1">
                   <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder="Joan"
+                    placeholder="Enter your first name"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     onBlur={() => touch("firstName")}
@@ -161,22 +161,27 @@ export default function SignUp() {
               <div>
                 <Label className="text-xs text-muted-foreground">M.I.</Label>
                 <Input
-                  placeholder="C"
+                  placeholder="—"
                   value={middleInitial}
                   onChange={(e) => setMiddleInitial(e.target.value.replace(/[^A-Za-z]/g, "").slice(0, 1))}
                   className="mt-1 h-11 rounded-xl text-center uppercase"
                   maxLength={1}
                   autoComplete="additional-name"
+                  aria-label="Middle initial (if applicable)"
+                  title="Enter your middle initial (if applicable)"
                 />
               </div>
             </div>
+            <p className="text-[10px] text-muted-foreground -mt-1">
+              Middle initial is optional — leave blank if not applicable.
+            </p>
 
             <div>
               <Label className="text-xs text-muted-foreground">Last Name</Label>
               <div className="relative mt-1">
                 <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Arellano"
+                  placeholder="Enter your last name"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   onBlur={() => touch("lastName")}
@@ -187,6 +192,26 @@ export default function SignUp() {
               </div>
               {showError("lastName") && (
                 <p className="mt-1 text-xs text-destructive animate-fade-in">{errors.lastName}</p>
+              )}
+            </div>
+
+            <div>
+              <Label className="text-xs text-muted-foreground">Birthday</Label>
+              <div className="relative mt-1">
+                <Cake className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="date"
+                  value={birthday}
+                  onChange={(e) => setBirthday(e.target.value)}
+                  onBlur={() => touch("birthday")}
+                  max={todayIso}
+                  min="1900-01-01"
+                  className={cn("h-11 rounded-xl pl-10", showError("birthday") && "border-destructive")}
+                  autoComplete="bday"
+                />
+              </div>
+              {showError("birthday") && (
+                <p className="mt-1 text-xs text-destructive animate-fade-in">{errors.birthday}</p>
               )}
             </div>
           </section>
