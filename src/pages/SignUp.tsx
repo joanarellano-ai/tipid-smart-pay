@@ -75,6 +75,7 @@ export default function SignUp() {
   const [firstName, setFirstName] = useState("");
   const [middleInitial, setMiddleInitial] = useState("");
   const [lastName, setLastName] = useState("");
+  const [birthday, setBirthday] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -83,18 +84,19 @@ export default function SignUp() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
 
-  const values: FormValues = { firstName, middleInitial, lastName, email, password, confirmPassword };
-  const errors = useMemo(() => validate(values), [firstName, middleInitial, lastName, email, password, confirmPassword]);
+  const values: FormValues = { firstName, middleInitial, lastName, birthday, email, password, confirmPassword };
+  const errors = useMemo(() => validate(values), [firstName, middleInitial, lastName, birthday, email, password, confirmPassword]);
   const isValid = Object.keys(errors).length === 0;
 
   const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
+
+  const todayIso = new Date().toISOString().slice(0, 10);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
 
     setLoading(true);
-    // Mark new user BEFORE stores initialize so wallet & bill history start empty
     localStorage.setItem("tipidpay_new_user", "1");
     localStorage.removeItem("tipidpay_wallet");
     localStorage.removeItem("tipidpay_bill_history");
@@ -105,7 +107,7 @@ export default function SignUp() {
     const l = capitalize(lastName);
     const mi = middleInitial.trim().charAt(0).toUpperCase();
 
-    userStore.set({ firstName: f, middleInitial: mi, lastName: l, email: email.trim() });
+    userStore.set({ firstName: f, middleInitial: mi, lastName: l, birthday, email: email.trim() });
     setLoading(false);
     toast.success("Account created successfully!", { description: `Welcome, ${f}! Your wallet starts at ₱0.` });
     navigate("/onboarding");
