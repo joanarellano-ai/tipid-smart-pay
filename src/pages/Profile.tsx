@@ -16,10 +16,12 @@ export default function Profile() {
   const navigate = useNavigate();
   const user = useUser();
   const account = useAccount();
-  const displayName = user.fullName || currentUser.name;
+  const displayName = user.fullName || "Your Name";
   const [dark, setDark] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [draftName, setDraftName] = useState(displayName);
+  const [draftFirst, setDraftFirst] = useState(user.firstName);
+  const [draftMI, setDraftMI] = useState(user.middleInitial);
+  const [draftLast, setDraftLast] = useState(user.lastName);
   const [draftEmail, setDraftEmail] = useState(user.email || "user@tipidpay.ph");
   const [modeOpen, setModeOpen] = useState(false);
 
@@ -30,15 +32,24 @@ export default function Profile() {
   };
 
   const saveProfile = () => {
-    if (!draftName.trim()) {
-      toast.error("Name cannot be empty");
+    if (!draftFirst.trim()) {
+      toast.error("First name is required");
+      return;
+    }
+    if (!draftLast.trim()) {
+      toast.error("Last name is required");
       return;
     }
     if (!/^\S+@\S+\.\S+$/.test(draftEmail)) {
       toast.error("Enter a valid email");
       return;
     }
-    userStore.set({ fullName: draftName.trim(), email: draftEmail.trim() });
+    userStore.set({
+      firstName: capitalize(draftFirst),
+      middleInitial: draftMI.trim().charAt(0).toUpperCase(),
+      lastName: capitalize(draftLast),
+      email: draftEmail.trim(),
+    });
     toast.success("Profile updated");
     setEditOpen(false);
   };
