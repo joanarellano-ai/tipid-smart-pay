@@ -37,13 +37,14 @@ function load(): UserData {
       const f = tokens[0] ?? "";
       const l = tokens.length > 1 ? tokens[tokens.length - 1] : "";
       const m = tokens.length > 2 ? tokens[1].charAt(0) : "";
-      return { firstName: f, middleInitial: m, lastName: l, email: parsed.email ?? "", fullName: formatFullName(f, m, l) };
+      return { firstName: f, middleInitial: m, lastName: l, email: parsed.email ?? "", birthday: parsed.birthday ?? "", fullName: formatFullName(f, m, l) };
     }
     return {
       firstName,
       middleInitial,
       lastName,
       email: parsed.email ?? "",
+      birthday: parsed.birthday ?? "",
       fullName: formatFullName(firstName, middleInitial, lastName),
     };
   } catch {
