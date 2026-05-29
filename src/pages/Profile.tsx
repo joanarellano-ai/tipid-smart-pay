@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { currentUser, badges } from "@/lib/data";
-import { useUser, userStore } from "@/lib/userStore";
+import { badges } from "@/lib/data";
+import { useUser, userStore, capitalize } from "@/lib/userStore";
 import { useAccount, accountStore } from "@/lib/accountStore";
 import { ChevronRight, Moon, Sun, Bell, Shield, HelpCircle, LogOut, Edit3, Users, Home as HomeIcon, History, ClipboardList, Crown, Building2 } from "lucide-react";
 import { usePremium } from "@/lib/premiumStore";
