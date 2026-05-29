@@ -172,12 +172,28 @@ export default function Profile() {
             <DialogDescription>Update your name and email</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 pt-2">
-            <div>
-              <Label>Full Name</Label>
-              <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} maxLength={60} className="rounded-xl" />
+            <div className="grid grid-cols-[1fr_64px] gap-2">
+              <div>
+                <Label className="text-xs">First Name</Label>
+                <Input value={draftFirst} onChange={(e) => setDraftFirst(e.target.value)} maxLength={50} placeholder="Joan" className="rounded-xl" />
+              </div>
+              <div>
+                <Label className="text-xs">M.I.</Label>
+                <Input
+                  value={draftMI}
+                  onChange={(e) => setDraftMI(e.target.value.replace(/[^A-Za-z]/g, "").slice(0, 1))}
+                  maxLength={1}
+                  placeholder="C"
+                  className="rounded-xl text-center uppercase"
+                />
+              </div>
             </div>
             <div>
-              <Label>Email</Label>
+              <Label className="text-xs">Last Name</Label>
+              <Input value={draftLast} onChange={(e) => setDraftLast(e.target.value)} maxLength={50} placeholder="Arellano" className="rounded-xl" />
+            </div>
+            <div>
+              <Label className="text-xs">Email</Label>
               <Input type="email" value={draftEmail} onChange={(e) => setDraftEmail(e.target.value)} maxLength={120} className="rounded-xl" />
             </div>
             <Button className="w-full rounded-xl" onClick={saveProfile}>Save Changes</Button>
