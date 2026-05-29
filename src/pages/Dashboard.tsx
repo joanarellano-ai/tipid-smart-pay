@@ -1,7 +1,13 @@
 import { TrendingUp, TrendingDown, ArrowRight, Zap, CreditCard, Users, Lightbulb, AlertTriangle, Clock, Sparkles, History, Plane } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { currentUser, formatPeso, alerts } from "@/lib/data";
+import { formatPeso, alerts } from "@/lib/data";
 import { useUser } from "@/lib/userStore";
+
+function greetingForHour(h: number): string {
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
 import { useAccount } from "@/lib/accountStore";
 import { billHistoryStore, useBillHistory, getUtilityMeta } from "@/lib/billHistoryStore";
 import { LineChart, Line, ResponsiveContainer, XAxis, Tooltip } from "recharts";
