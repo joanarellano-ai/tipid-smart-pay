@@ -8,13 +8,15 @@ export interface UserData {
   middleInitial: string;
   lastName: string;
   email: string;
+  /** ISO date string YYYY-MM-DD */
+  birthday: string;
   /** Derived "First M. Last" — kept for backward compat */
   fullName: string;
 }
 
 const STORAGE_KEY = "tipidpay_user";
 
-const empty: UserData = { firstName: "", middleInitial: "", lastName: "", email: "", fullName: "" };
+const empty: UserData = { firstName: "", middleInitial: "", lastName: "", email: "", birthday: "", fullName: "" };
 
 function formatFullName(first: string, mi: string, last: string): string {
   const parts = [first.trim(), mi.trim() ? `${mi.trim().charAt(0).toUpperCase()}.` : "", last.trim()].filter(Boolean);
