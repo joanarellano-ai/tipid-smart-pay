@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, Check, X } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, Check, X, Cake } from "lucide-react";
 import { toast } from "sonner";
 import { userStore, capitalize } from "@/lib/userStore";
 import logo from "@/assets/tipidpay-logo.png";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 interface FieldErrors {
   firstName?: string;
   lastName?: string;
+  birthday?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
@@ -21,10 +22,13 @@ interface FormValues {
   firstName: string;
   middleInitial: string;
   lastName: string;
+  birthday: string;
   email: string;
   password: string;
   confirmPassword: string;
 }
+
+const MIN_AGE_YEARS = 13;
 
 function validate(v: FormValues): FieldErrors {
   const errors: FieldErrors = {};
@@ -33,6 +37,18 @@ function validate(v: FormValues): FieldErrors {
 
   if (!v.lastName.trim()) errors.lastName = "Last name is required";
   else if (v.lastName.trim().length > 50) errors.lastName = "Max 50 characters";
+
+  if (!v.birthday) errors.birthday = "Birthday is required";
+  else {
+    const d = new Date(v.birthday);
+    if (isNaN(d.getTime())) errors.birthday = "Invalid date";
+    else {
+      const now = new Date();
+      const minDob = new Date(now.getFullYear() - MIN_AGE_YEARS, now.getMonth(), now.getDate());
+      if (d > now) errors.birthday = "Birthday can't be in the future";
+      else if (d > minDob) errors.birthday = `You must be at least ${MIN_AGE_YEARS} years old`;
+    }
+  }
 
   const email = v.email.trim();
   if (!email) errors.email = "Email is required";
@@ -59,6 +75,7 @@ export default function SignUp() {
   const [firstName, setFirstName] = useState("");
   const [middleInitial, setMiddleInitial] = useState("");
   const [lastName, setLastName] = useState("");
+  const [birthday, setBirthday] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -67,18 +84,19 @@ export default function SignUp() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
 
-  const values: FormValues = { firstName, middleInitial, lastName, email, password, confirmPassword };
-  const errors = useMemo(() => validate(values), [firstName, middleInitial, lastName, email, password, confirmPassword]);
+  const values: FormValues = { firstName, middleInitial, lastName, birthday, email, password, confirmPassword };
+  const errors = useMemo(() => validate(values), [firstName, middleInitial, lastName, birthday, email, password, confirmPassword]);
   const isValid = Object.keys(errors).length === 0;
 
   const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
+
+  const todayIso = new Date().toISOString().slice(0, 10);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
 
     setLoading(true);
-    // Mark new user BEFORE stores initialize so wallet & bill history start empty
     localStorage.setItem("tipidpay_new_user", "1");
     localStorage.removeItem("tipidpay_wallet");
     localStorage.removeItem("tipidpay_bill_history");
@@ -89,7 +107,7 @@ export default function SignUp() {
     const l = capitalize(lastName);
     const mi = middleInitial.trim().charAt(0).toUpperCase();
 
-    userStore.set({ firstName: f, middleInitial: mi, lastName: l, email: email.trim() });
+    userStore.set({ firstName: f, middleInitial: mi, lastName: l, birthday, email: email.trim() });
     setLoading(false);
     toast.success("Account created successfully!", { description: `Welcome, ${f}! Your wallet starts at ₱0.` });
     navigate("/onboarding");
@@ -120,13 +138,13 @@ export default function SignUp() {
               Personal Information
             </h2>
 
-            <div className="grid grid-cols-[1fr_64px] gap-2">
+            <div className="grid grid-cols-[1fr_72px] gap-2">
               <div>
                 <Label className="text-xs text-muted-foreground">First Name</Label>
                 <div className="relative mt-1">
                   <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder="Joan"
+                    placeholder="Enter your first name"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     onBlur={() => touch("firstName")}
@@ -143,22 +161,27 @@ export default function SignUp() {
               <div>
                 <Label className="text-xs text-muted-foreground">M.I.</Label>
                 <Input
-                  placeholder="C"
+                  placeholder="—"
                   value={middleInitial}
                   onChange={(e) => setMiddleInitial(e.target.value.replace(/[^A-Za-z]/g, "").slice(0, 1))}
                   className="mt-1 h-11 rounded-xl text-center uppercase"
                   maxLength={1}
                   autoComplete="additional-name"
+                  aria-label="Middle initial (if applicable)"
+                  title="Enter your middle initial (if applicable)"
                 />
               </div>
             </div>
+            <p className="text-[10px] text-muted-foreground -mt-1">
+              Middle initial is optional — leave blank if not applicable.
+            </p>
 
             <div>
               <Label className="text-xs text-muted-foreground">Last Name</Label>
               <div className="relative mt-1">
                 <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Arellano"
+                  placeholder="Enter your last name"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   onBlur={() => touch("lastName")}
@@ -169,6 +192,26 @@ export default function SignUp() {
               </div>
               {showError("lastName") && (
                 <p className="mt-1 text-xs text-destructive animate-fade-in">{errors.lastName}</p>
+              )}
+            </div>
+
+            <div>
+              <Label className="text-xs text-muted-foreground">Birthday</Label>
+              <div className="relative mt-1">
+                <Cake className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="date"
+                  value={birthday}
+                  onChange={(e) => setBirthday(e.target.value)}
+                  onBlur={() => touch("birthday")}
+                  max={todayIso}
+                  min="1900-01-01"
+                  className={cn("h-11 rounded-xl pl-10", showError("birthday") && "border-destructive")}
+                  autoComplete="bday"
+                />
+              </div>
+              {showError("birthday") && (
+                <p className="mt-1 text-xs text-destructive animate-fade-in">{errors.birthday}</p>
               )}
             </div>
           </section>
@@ -184,7 +227,7 @@ export default function SignUp() {
               <div className="relative mt-1">
                 <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="joan@example.com"
+                  placeholder="Enter your email address"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

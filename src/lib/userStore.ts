@@ -8,13 +8,15 @@ export interface UserData {
   middleInitial: string;
   lastName: string;
   email: string;
+  /** ISO date string YYYY-MM-DD */
+  birthday: string;
   /** Derived "First M. Last" — kept for backward compat */
   fullName: string;
 }
 
 const STORAGE_KEY = "tipidpay_user";
 
-const empty: UserData = { firstName: "", middleInitial: "", lastName: "", email: "", fullName: "" };
+const empty: UserData = { firstName: "", middleInitial: "", lastName: "", email: "", birthday: "", fullName: "" };
 
 function formatFullName(first: string, mi: string, last: string): string {
   const parts = [first.trim(), mi.trim() ? `${mi.trim().charAt(0).toUpperCase()}.` : "", last.trim()].filter(Boolean);
@@ -35,13 +37,14 @@ function load(): UserData {
       const f = tokens[0] ?? "";
       const l = tokens.length > 1 ? tokens[tokens.length - 1] : "";
       const m = tokens.length > 2 ? tokens[1].charAt(0) : "";
-      return { firstName: f, middleInitial: m, lastName: l, email: parsed.email ?? "", fullName: formatFullName(f, m, l) };
+      return { firstName: f, middleInitial: m, lastName: l, email: parsed.email ?? "", birthday: parsed.birthday ?? "", fullName: formatFullName(f, m, l) };
     }
     return {
       firstName,
       middleInitial,
       lastName,
       email: parsed.email ?? "",
+      birthday: parsed.birthday ?? "",
       fullName: formatFullName(firstName, middleInitial, lastName),
     };
   } catch {
@@ -67,11 +70,13 @@ export const userStore = {
     const middleInitial = (data.middleInitial ?? userData.middleInitial).trim();
     const lastName = (data.lastName ?? userData.lastName).trim();
     const email = (data.email ?? userData.email).trim();
+    const birthday = (data.birthday ?? userData.birthday).trim();
     userData = {
       firstName,
       middleInitial,
       lastName,
       email,
+      birthday,
       fullName: formatFullName(firstName, middleInitial, lastName),
     };
     persist();
