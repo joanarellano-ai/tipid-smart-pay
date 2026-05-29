@@ -1,7 +1,13 @@
 import { TrendingUp, TrendingDown, ArrowRight, Zap, CreditCard, Users, Lightbulb, AlertTriangle, Clock, Sparkles, History, Plane } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { currentUser, formatPeso, alerts } from "@/lib/data";
+import { formatPeso, alerts } from "@/lib/data";
 import { useUser } from "@/lib/userStore";
+
+function greetingForHour(h: number): string {
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
 import { useAccount } from "@/lib/accountStore";
 import { billHistoryStore, useBillHistory, getUtilityMeta } from "@/lib/billHistoryStore";
 import { LineChart, Line, ResponsiveContainer, XAxis, Tooltip } from "recharts";
@@ -26,7 +32,8 @@ export default function Dashboard() {
   const user = useUser();
   const account = useAccount();
   const entries = useBillHistory();
-  const displayName = user.fullName || currentUser.name;
+  const firstName = user.firstName || "there";
+  const greeting = greetingForHour(new Date().getHours());
   const isSolo = account.mode === "solo";
 
   // Compute current month total from latest entries + predictions
@@ -77,9 +84,9 @@ export default function Dashboard() {
         {/* Header */}
         <div className="mb-5 flex items-center justify-between animate-fade-in">
           <div>
-            <p className="text-sm text-muted-foreground">Good morning,</p>
+            <p className="text-sm text-muted-foreground">{greeting},</p>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-foreground">{displayName.split(" ")[0]} 👋</h1>
+              <h1 className="text-xl font-bold text-foreground">{firstName} 👋</h1>
               <PremiumBadge />
             </div>
             <span className="mt-1 inline-block rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">

@@ -2,36 +2,48 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, Check, X } from "lucide-react";
 import { toast } from "sonner";
-import { userStore } from "@/lib/userStore";
+import { userStore, capitalize } from "@/lib/userStore";
 import logo from "@/assets/tipidpay-logo.png";
 import { cn } from "@/lib/utils";
 
 interface FieldErrors {
-  fullName?: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
 }
 
-function validate(values: { fullName: string; email: string; password: string; confirmPassword: string }): FieldErrors {
+interface FormValues {
+  firstName: string;
+  middleInitial: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+function validate(v: FormValues): FieldErrors {
   const errors: FieldErrors = {};
+  if (!v.firstName.trim()) errors.firstName = "First name is required";
+  else if (v.firstName.trim().length > 50) errors.firstName = "Max 50 characters";
 
-  const name = values.fullName.trim();
-  if (!name) errors.fullName = "Full name is required";
-  else if (name.length > 100) errors.fullName = "Name must be under 100 characters";
+  if (!v.lastName.trim()) errors.lastName = "Last name is required";
+  else if (v.lastName.trim().length > 50) errors.lastName = "Max 50 characters";
 
-  const email = values.email.trim();
+  const email = v.email.trim();
   if (!email) errors.email = "Email is required";
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Enter a valid email";
   else if (email.length > 255) errors.email = "Email must be under 255 characters";
 
-  if (!values.password) errors.password = "Password is required";
-  else if (values.password.length < 8) errors.password = "Minimum 8 characters";
+  if (!v.password) errors.password = "Password is required";
+  else if (v.password.length < 8) errors.password = "Minimum 8 characters";
 
-  if (!values.confirmPassword) errors.confirmPassword = "Please confirm your password";
-  else if (values.password && values.confirmPassword !== values.password) errors.confirmPassword = "Passwords do not match";
+  if (!v.confirmPassword) errors.confirmPassword = "Please confirm your password";
+  else if (v.password && v.confirmPassword !== v.password) errors.confirmPassword = "Passwords do not match";
 
   return errors;
 }
@@ -44,7 +56,9 @@ const passwordRules = [
 
 export default function SignUp() {
   const navigate = useNavigate();
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [middleInitial, setMiddleInitial] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -53,11 +67,8 @@ export default function SignUp() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
 
-  const errors = useMemo(
-    () => validate({ fullName, email, password, confirmPassword }),
-    [fullName, email, password, confirmPassword]
-  );
-
+  const values: FormValues = { firstName, middleInitial, lastName, email, password, confirmPassword };
+  const errors = useMemo(() => validate(values), [firstName, middleInitial, lastName, email, password, confirmPassword]);
   const isValid = Object.keys(errors).length === 0;
 
   const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
@@ -67,26 +78,28 @@ export default function SignUp() {
     if (!isValid) return;
 
     setLoading(true);
-    // Mark as new user BEFORE stores initialize so wallet & bill history start empty
+    // Mark new user BEFORE stores initialize so wallet & bill history start empty
     localStorage.setItem("tipidpay_new_user", "1");
     localStorage.removeItem("tipidpay_wallet");
     localStorage.removeItem("tipidpay_bill_history");
 
-    // Simulate network request
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1200));
 
-    userStore.set({ fullName: fullName.trim(), email: email.trim() });
+    const f = capitalize(firstName);
+    const l = capitalize(lastName);
+    const mi = middleInitial.trim().charAt(0).toUpperCase();
+
+    userStore.set({ firstName: f, middleInitial: mi, lastName: l, email: email.trim() });
     setLoading(false);
-    toast.success("Account created successfully!", { description: `Welcome, ${fullName.trim()}! Your wallet starts at ₱0.` });
+    toast.success("Account created successfully!", { description: `Welcome, ${f}! Your wallet starts at ₱0.` });
     navigate("/onboarding");
   };
 
   const showError = (field: keyof FieldErrors) => touched[field] && errors[field];
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-6 gradient-hero">
+    <div className="flex min-h-screen flex-col items-center justify-center px-6 py-10 gradient-hero">
       <div className="w-full max-w-sm animate-scale-in">
-        {/* Back */}
         <button
           onClick={() => navigate("/welcome")}
           className="mb-6 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -94,129 +107,163 @@ export default function SignUp() {
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
 
-        {/* Header */}
-        <div className="mb-8 flex flex-col items-center">
+        <div className="mb-6 flex flex-col items-center">
           <img src={logo} alt="TIPIDPAY logo" width={64} height={64} className="mb-3 drop-shadow-md" />
           <h1 className="text-2xl font-bold text-foreground">Create Account</h1>
           <p className="text-sm text-muted-foreground">Join TIPIDPAY and start saving</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-          {/* Full Name */}
-          <div>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Full Name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                onBlur={() => touch("fullName")}
-                className={cn("h-12 rounded-xl pl-10", showError("fullName") && "border-destructive")}
-                maxLength={100}
-              />
-            </div>
-            {showError("fullName") && (
-              <p className="mt-1 text-xs text-destructive animate-fade-in">{errors.fullName}</p>
-            )}
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+          {/* Personal Information */}
+          <section className="space-y-3 rounded-2xl bg-card/60 p-4 shadow-sm">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Personal Information
+            </h2>
 
-          {/* Email */}
-          <div>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Work Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onBlur={() => touch("email")}
-                className={cn("h-12 rounded-xl pl-10", showError("email") && "border-destructive")}
-                maxLength={255}
-              />
-            </div>
-            {showError("email") && (
-              <p className="mt-1 text-xs text-destructive animate-fade-in">{errors.email}</p>
-            )}
-          </div>
-
-          {/* Password */}
-          <div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onBlur={() => touch("password")}
-                className={cn("h-12 rounded-xl pl-10 pr-10", showError("password") && "border-destructive")}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            {showError("password") && (
-              <p className="mt-1 text-xs text-destructive animate-fade-in">{errors.password}</p>
-            )}
-            {/* Password strength hints */}
-            {touched.password && password.length > 0 && (
-              <div className="mt-2 space-y-1 animate-fade-in">
-                {passwordRules.map((rule) => {
-                  const pass = rule.test(password);
-                  return (
-                    <div key={rule.label} className="flex items-center gap-1.5 text-xs">
-                      {pass ? (
-                        <Check className="h-3 w-3 text-primary" />
-                      ) : (
-                        <X className="h-3 w-3 text-muted-foreground" />
-                      )}
-                      <span className={pass ? "text-primary" : "text-muted-foreground"}>
-                        {rule.label}
-                      </span>
-                    </div>
-                  );
-                })}
+            <div className="grid grid-cols-[1fr_64px] gap-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">First Name</Label>
+                <div className="relative mt-1">
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Joan"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    onBlur={() => touch("firstName")}
+                    className={cn("h-11 rounded-xl pl-10", showError("firstName") && "border-destructive")}
+                    maxLength={50}
+                    autoComplete="given-name"
+                  />
+                </div>
+                {showError("firstName") && (
+                  <p className="mt-1 text-xs text-destructive animate-fade-in">{errors.firstName}</p>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Confirm Password */}
-          <div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Confirm Password"
-                type={showConfirm ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                onBlur={() => touch("confirmPassword")}
-                className={cn("h-12 rounded-xl pl-10 pr-10", showError("confirmPassword") && "border-destructive")}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              >
-                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+              <div>
+                <Label className="text-xs text-muted-foreground">M.I.</Label>
+                <Input
+                  placeholder="C"
+                  value={middleInitial}
+                  onChange={(e) => setMiddleInitial(e.target.value.replace(/[^A-Za-z]/g, "").slice(0, 1))}
+                  className="mt-1 h-11 rounded-xl text-center uppercase"
+                  maxLength={1}
+                  autoComplete="additional-name"
+                />
+              </div>
             </div>
-            {showError("confirmPassword") && (
-              <p className="mt-1 text-xs text-destructive animate-fade-in">{errors.confirmPassword}</p>
-            )}
-          </div>
 
-          {/* Submit */}
-          <Button
-            type="submit"
-            variant="hero"
-            size="lg"
-            className="w-full"
-            disabled={!isValid || loading}
-          >
+            <div>
+              <Label className="text-xs text-muted-foreground">Last Name</Label>
+              <div className="relative mt-1">
+                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Arellano"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  onBlur={() => touch("lastName")}
+                  className={cn("h-11 rounded-xl pl-10", showError("lastName") && "border-destructive")}
+                  maxLength={50}
+                  autoComplete="family-name"
+                />
+              </div>
+              {showError("lastName") && (
+                <p className="mt-1 text-xs text-destructive animate-fade-in">{errors.lastName}</p>
+              )}
+            </div>
+          </section>
+
+          {/* Account */}
+          <section className="space-y-3 rounded-2xl bg-card/60 p-4 shadow-sm">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Account
+            </h2>
+
+            <div>
+              <Label className="text-xs text-muted-foreground">Email</Label>
+              <div className="relative mt-1">
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="joan@example.com"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => touch("email")}
+                  className={cn("h-11 rounded-xl pl-10", showError("email") && "border-destructive")}
+                  maxLength={255}
+                  autoComplete="email"
+                />
+              </div>
+              {showError("email") && (
+                <p className="mt-1 text-xs text-destructive animate-fade-in">{errors.email}</p>
+              )}
+            </div>
+
+            <div>
+              <Label className="text-xs text-muted-foreground">Password</Label>
+              <div className="relative mt-1">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="At least 8 characters"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onBlur={() => touch("password")}
+                  className={cn("h-11 rounded-xl pl-10 pr-10", showError("password") && "border-destructive")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {showError("password") && (
+                <p className="mt-1 text-xs text-destructive animate-fade-in">{errors.password}</p>
+              )}
+              {touched.password && password.length > 0 && (
+                <div className="mt-2 space-y-1 animate-fade-in">
+                  {passwordRules.map((rule) => {
+                    const pass = rule.test(password);
+                    return (
+                      <div key={rule.label} className="flex items-center gap-1.5 text-xs">
+                        {pass ? <Check className="h-3 w-3 text-primary" /> : <X className="h-3 w-3 text-muted-foreground" />}
+                        <span className={pass ? "text-primary" : "text-muted-foreground"}>{rule.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label className="text-xs text-muted-foreground">Confirm Password</Label>
+              <div className="relative mt-1">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Re-enter password"
+                  type={showConfirm ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onBlur={() => touch("confirmPassword")}
+                  className={cn("h-11 rounded-xl pl-10 pr-10", showError("confirmPassword") && "border-destructive")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {showError("confirmPassword") && (
+                <p className="mt-1 text-xs text-destructive animate-fade-in">{errors.confirmPassword}</p>
+              )}
+            </div>
+          </section>
+
+          <Button type="submit" variant="hero" size="lg" className="w-full" disabled={!isValid || loading}>
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating account…

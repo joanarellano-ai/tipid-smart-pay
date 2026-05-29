@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { currentUser, badges } from "@/lib/data";
-import { useUser, userStore } from "@/lib/userStore";
+import { badges } from "@/lib/data";
+import { useUser, userStore, capitalize } from "@/lib/userStore";
 import { useAccount, accountStore } from "@/lib/accountStore";
 import { ChevronRight, Moon, Sun, Bell, Shield, HelpCircle, LogOut, Edit3, Users, Home as HomeIcon, History, ClipboardList, Crown, Building2 } from "lucide-react";
 import { usePremium } from "@/lib/premiumStore";
@@ -16,10 +16,12 @@ export default function Profile() {
   const navigate = useNavigate();
   const user = useUser();
   const account = useAccount();
-  const displayName = user.fullName || currentUser.name;
+  const displayName = user.fullName || "Your Name";
   const [dark, setDark] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [draftName, setDraftName] = useState(displayName);
+  const [draftFirst, setDraftFirst] = useState(user.firstName);
+  const [draftMI, setDraftMI] = useState(user.middleInitial);
+  const [draftLast, setDraftLast] = useState(user.lastName);
   const [draftEmail, setDraftEmail] = useState(user.email || "user@tipidpay.ph");
   const [modeOpen, setModeOpen] = useState(false);
 
@@ -30,15 +32,24 @@ export default function Profile() {
   };
 
   const saveProfile = () => {
-    if (!draftName.trim()) {
-      toast.error("Name cannot be empty");
+    if (!draftFirst.trim()) {
+      toast.error("First name is required");
+      return;
+    }
+    if (!draftLast.trim()) {
+      toast.error("Last name is required");
       return;
     }
     if (!/^\S+@\S+\.\S+$/.test(draftEmail)) {
       toast.error("Enter a valid email");
       return;
     }
-    userStore.set({ fullName: draftName.trim(), email: draftEmail.trim() });
+    userStore.set({
+      firstName: capitalize(draftFirst),
+      middleInitial: draftMI.trim().charAt(0).toUpperCase(),
+      lastName: capitalize(draftLast),
+      email: draftEmail.trim(),
+    });
     toast.success("Profile updated");
     setEditOpen(false);
   };
@@ -161,12 +172,28 @@ export default function Profile() {
             <DialogDescription>Update your name and email</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 pt-2">
-            <div>
-              <Label>Full Name</Label>
-              <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} maxLength={60} className="rounded-xl" />
+            <div className="grid grid-cols-[1fr_64px] gap-2">
+              <div>
+                <Label className="text-xs">First Name</Label>
+                <Input value={draftFirst} onChange={(e) => setDraftFirst(e.target.value)} maxLength={50} placeholder="Joan" className="rounded-xl" />
+              </div>
+              <div>
+                <Label className="text-xs">M.I.</Label>
+                <Input
+                  value={draftMI}
+                  onChange={(e) => setDraftMI(e.target.value.replace(/[^A-Za-z]/g, "").slice(0, 1))}
+                  maxLength={1}
+                  placeholder="C"
+                  className="rounded-xl text-center uppercase"
+                />
+              </div>
             </div>
             <div>
-              <Label>Email</Label>
+              <Label className="text-xs">Last Name</Label>
+              <Input value={draftLast} onChange={(e) => setDraftLast(e.target.value)} maxLength={50} placeholder="Arellano" className="rounded-xl" />
+            </div>
+            <div>
+              <Label className="text-xs">Email</Label>
               <Input type="email" value={draftEmail} onChange={(e) => setDraftEmail(e.target.value)} maxLength={120} className="rounded-xl" />
             </div>
             <Button className="w-full rounded-xl" onClick={saveProfile}>Save Changes</Button>
