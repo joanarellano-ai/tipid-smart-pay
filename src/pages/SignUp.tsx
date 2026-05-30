@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, Check, X, Cake } from "lucide-react";
 import { toast } from "sonner";
 import { userStore, capitalize } from "@/lib/userStore";
-import logo from "@/assets/tipidpay-logo.png";
+import { TipidPayLogo } from "@/components/brand/TipidPayLogo";
 import { cn } from "@/lib/utils";
 
 interface FieldErrors {
@@ -126,10 +126,11 @@ export default function SignUp() {
         </button>
 
         <div className="mb-6 flex flex-col items-center">
-          <img src={logo} alt="TIPIDPAY logo" width={64} height={64} className="mb-3 drop-shadow-md" />
-          <h1 className="text-2xl font-bold text-foreground">Create Account</h1>
-          <p className="text-sm text-muted-foreground">Join TIPIDPAY and start saving</p>
+          <TipidPayLogo variant="icon" size={64} className="mb-3 drop-shadow-md" />
+          <h1 className="text-foreground">Create Account</h1>
+          <p className="text-sm text-muted-foreground">Join TipidPay and start saving</p>
         </div>
+
 
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           {/* Personal Information */}

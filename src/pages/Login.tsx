@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-import logo from "@/assets/tipidpay-logo.png";
+import { TipidPayLogo } from "@/components/brand/TipidPayLogo";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -30,10 +30,11 @@ export default function Login() {
     <div className="flex min-h-screen flex-col items-center justify-center px-6 gradient-hero">
       <div className="w-full max-w-sm animate-scale-in">
         <div className="mb-8 flex flex-col items-center">
-          <img src={logo} alt="TIPIDPAY logo" width={72} height={72} className="mb-4 drop-shadow-md" />
-          <h1 className="text-2xl font-bold text-foreground">Welcome Back</h1>
-          <p className="text-sm text-muted-foreground">Login to your TIPIDPAY account</p>
+          <TipidPayLogo variant="icon" size={72} className="mb-4 drop-shadow-md" />
+          <h1 className="text-foreground">Welcome Back</h1>
+          <p className="text-sm text-muted-foreground">Login to your TipidPay account</p>
         </div>
+
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div className="space-y-1.5">

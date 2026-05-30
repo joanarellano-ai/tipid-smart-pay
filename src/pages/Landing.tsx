@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap, Brain, CreditCard, Shield, TrendingDown, Users } from "lucide-react";
+import { TipidPayLogo } from "@/components/brand/TipidPayLogo";
+
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -10,12 +12,10 @@ export default function Landing() {
       {/* Hero */}
       <section className="gradient-hero px-6 pt-16 pb-20">
         <div className="mx-auto max-w-lg">
-          <div className="mb-8 flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl gradient-primary">
-              <Zap className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold text-foreground">TIPIDPAY</span>
+          <div className="mb-8">
+            <TipidPayLogo variant="horizontal" size={40} />
           </div>
+
 
           <h1 className="mb-4 text-4xl font-extrabold leading-tight text-foreground animate-fade-in">
             Smart bills.{" "}

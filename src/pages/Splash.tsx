@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "@/assets/tipidpay-logo.png";
+import { TipidPayLogo } from "@/components/brand/TipidPayLogo";
+
 
 export default function Splash() {
   const navigate = useNavigate();
@@ -32,16 +33,11 @@ export default function Splash() {
       style={{ opacity: fading ? 0 : 1 }}
     >
       <div className="flex flex-col items-center animate-scale-in">
-        <img
-          src={logo}
-          alt="TIPIDPAY logo"
-          width={110}
-          height={110}
-          className="mb-6 drop-shadow-lg"
-        />
-        <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-10">
-          TIPIDPAY
-        </h1>
+        <TipidPayLogo variant="icon" size={96} className="mb-6 drop-shadow-lg" />
+        <div className="mb-10">
+          <TipidPayLogo variant="wordmark" size={56} />
+        </div>
+
 
         {/* Progress bar */}
         <div className="w-40 h-1 rounded-full bg-border overflow-hidden">

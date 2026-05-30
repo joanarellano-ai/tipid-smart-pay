@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
-import logo from "@/assets/tipidpay-logo.png";
+import { TipidPayLogo } from "@/components/brand/TipidPayLogo";
+
 
 export default function Welcome() {
   const navigate = useNavigate();
@@ -13,17 +14,11 @@ export default function Welcome() {
 
       {/* Center content */}
       <div className="w-full max-w-sm flex flex-col items-center animate-scale-in">
-        <img
-          src={logo}
-          alt="TIPIDPAY logo"
-          width={120}
-          height={120}
-          className="mb-4 drop-shadow-lg"
-        />
+        <TipidPayLogo variant="icon" size={104} className="mb-5 drop-shadow-lg" />
+        <div className="mb-2">
+          <TipidPayLogo variant="wordmark" size={56} />
+        </div>
 
-        <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-1">
-          TIPIDPAY
-        </h1>
 
         <p className="mb-10 text-center text-muted-foreground text-sm leading-relaxed max-w-xs">
           AI-powered app that helps you track utility usage, predict bills, and manage payments easily. Stay in control and save smarter every month.
