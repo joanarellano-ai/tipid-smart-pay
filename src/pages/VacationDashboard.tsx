@@ -15,18 +15,37 @@ import {
   Receipt,
   UserPlus,
   Sparkles,
+  Search,
+  Filter,
+  Pencil,
+  RotateCcw,
+  History,
+  Printer,
+  Bell,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  CircleDollarSign,
 } from "lucide-react";
 import {
   vacationStore,
   useTrips,
   newId,
   CATEGORY_META,
+  PRIMARY_CATEGORIES,
   buildSplits,
   computeBalances,
   computeSettlements,
   totalSpent,
+  outstandingBalance,
+  pendingPaymentsCount,
+  expensePaid,
+  expenseRemaining,
+  expenseStatus,
   type Trip,
+  type TripExpense,
   type ExpenseCategory,
+  type ExpenseStatus,
   type SplitMode,
 } from "@/lib/vacationStore";
 import { formatPeso } from "@/lib/data";
@@ -43,8 +62,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -80,6 +108,16 @@ const CHART_COLORS = [
   "hsl(330, 75%, 55%)",
   "hsl(210, 20%, 50%)",
 ];
+
+const STATUS_META: Record<
+  ExpenseStatus,
+  { label: string; className: string; icon: React.ComponentType<{ className?: string }> }
+> = {
+  paid: { label: "Paid", className: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", icon: CheckCircle2 },
+  partial: { label: "Partial", className: "bg-amber-500/15 text-amber-700 border-amber-500/30", icon: Clock },
+  unpaid: { label: "Unpaid", className: "bg-muted text-muted-foreground border-border", icon: CircleDollarSign },
+  overdue: { label: "Overdue", className: "bg-destructive/15 text-destructive border-destructive/30", icon: AlertCircle },
+};
 
 export default function VacationDashboard() {
   const navigate = useNavigate();
@@ -138,6 +176,7 @@ export default function VacationDashboard() {
               const spent = totalSpent(t);
               const pct = t.budget > 0 ? Math.min(100, Math.round((spent / t.budget) * 100)) : 0;
               const over = t.budget > 0 && spent > t.budget;
+              const pending = pendingPaymentsCount(t);
               return (
                 <button
                   key={t.id}
@@ -174,6 +213,11 @@ export default function VacationDashboard() {
                       ) : (
                         <p className="mt-1 text-[11px] text-muted-foreground">
                           {formatPeso(spent)} spent
+                        </p>
+                      )}
+                      {pending > 0 && (
+                        <p className="mt-1 text-[10px] font-medium text-amber-600">
+                          {pending} pending payment{pending > 1 ? "s" : ""}
                         </p>
                       )}
                     </div>
@@ -350,17 +394,34 @@ function CreateTripDialog({
 function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void }) {
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [editing, setEditing] = useState<TripExpense | null>(null);
+  const [paying, setPaying] = useState<TripExpense | null>(null);
+  const [viewing, setViewing] = useState<TripExpense | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<TripExpense | null>(null);
+  const [trashOpen, setTrashOpen] = useState(false);
+
+  // Filtering / search / sort
+  const [search, setSearch] = useState("");
+  const [filterCat, setFilterCat] = useState<"all" | ExpenseCategory>("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | ExpenseStatus>("all");
+  const [sort, setSort] = useState<"date_desc" | "date_asc" | "amount_desc" | "amount_asc" | "updated">(
+    "date_desc"
+  );
+
+  const liveExpenses = trip.expenses.filter((e) => !e.deletedAt);
+  const trashedExpenses = trip.expenses.filter((e) => !!e.deletedAt);
 
   const spent = totalSpent(trip);
   const remaining = Math.max(0, trip.budget - spent);
   const over = trip.budget > 0 && spent > trip.budget;
   const pct = trip.budget > 0 ? Math.min(100, Math.round((spent / trip.budget) * 100)) : 0;
   const perPerson = trip.members.length > 0 ? spent / trip.members.length : 0;
+  const outstanding = outstandingBalance(trip);
+  const pending = pendingPaymentsCount(trip);
 
   const balances = useMemo(() => computeBalances(trip), [trip]);
   const settlements = useMemo(() => computeSettlements(trip), [trip]);
 
-  // Day-based daily limit
   const days = useMemo(() => {
     if (!trip.startDate || !trip.endDate) return 0;
     const s = new Date(trip.startDate).getTime();
@@ -372,15 +433,15 @@ function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void }) {
 
   const categoryData = useMemo(() => {
     const map: Record<string, number> = {};
-    trip.expenses.forEach((e) => {
+    liveExpenses.forEach((e) => {
       map[e.category] = (map[e.category] || 0) + e.amount;
     });
     return Object.entries(map).map(([k, v], i) => ({
-      name: CATEGORY_META[k as ExpenseCategory].label,
+      name: CATEGORY_META[k as ExpenseCategory]?.label || k,
       value: Math.round(v),
       fill: CHART_COLORS[i % CHART_COLORS.length],
     }));
-  }, [trip.expenses]);
+  }, [liveExpenses]);
 
   const memberContribData = useMemo(
     () =>
@@ -391,15 +452,51 @@ function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void }) {
     [balances, trip.members]
   );
 
+  const visibleExpenses = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    let list = liveExpenses.filter((e) => {
+      if (filterCat !== "all" && e.category !== filterCat) return false;
+      if (filterStatus !== "all" && expenseStatus(e) !== filterStatus) return false;
+      if (s) {
+        const payerName = trip.members.find((m) => m.id === e.paidById)?.name?.toLowerCase() || "";
+        const hay = `${e.title} ${e.note || ""} ${payerName} ${CATEGORY_META[e.category]?.label || ""}`.toLowerCase();
+        if (!hay.includes(s)) return false;
+      }
+      return true;
+    });
+    list = [...list].sort((a, b) => {
+      switch (sort) {
+        case "date_asc":
+          return a.date - b.date;
+        case "amount_desc":
+          return b.amount - a.amount;
+        case "amount_asc":
+          return a.amount - b.amount;
+        case "updated": {
+          const au = a.audit[a.audit.length - 1]?.at || a.date;
+          const bu = b.audit[b.audit.length - 1]?.at || b.date;
+          return bu - au;
+        }
+        case "date_desc":
+        default:
+          return b.date - a.date;
+      }
+    });
+    return list;
+  }, [liveExpenses, search, filterCat, filterStatus, sort, trip.members]);
+
   const exportCSV = () => {
     const rows = [
-      ["Date", "Title", "Category", "Amount", "Paid By", "Split Mode", "Note"],
-      ...trip.expenses.map((e) => [
+      ["Date", "Title", "Category", "Amount", "Paid By", "Status", "Paid", "Remaining", "Split Mode", "Note"],
+      ...liveExpenses.map((e) => [
         new Date(e.date).toISOString().slice(0, 10),
         e.title,
-        CATEGORY_META[e.category].label,
+        CATEGORY_META[e.category]?.label || e.category,
         e.amount.toFixed(2),
         trip.members.find((m) => m.id === e.paidById)?.name || "?",
+        STATUS_META[expenseStatus(e)].label,
+        expensePaid(e).toFixed(2),
+        expenseRemaining(e).toFixed(2),
         e.mode,
         (e.note || "").replace(/"/g, '""'),
       ]),
@@ -412,7 +509,73 @@ function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void }) {
     a.download = `${trip.name.replace(/\s+/g, "_")}_expenses.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: "Exported ✅", description: "CSV downloaded." });
+    toast({ title: "Exported ✅", description: "CSV / Excel-compatible file downloaded." });
+  };
+
+  const exportPDF = () => {
+    const win = window.open("", "_blank", "width=820,height=900");
+    if (!win) return;
+    const memberName = (id: string) => trip.members.find((m) => m.id === id)?.name || "—";
+    const settlementRows = settlements
+      .map(
+        (s) =>
+          `<tr><td>${memberName(s.fromId)}</td><td>→</td><td>${memberName(s.toId)}</td><td style="text-align:right">${formatPeso(s.amount)}</td></tr>`
+      )
+      .join("");
+    const expenseRows = liveExpenses
+      .map(
+        (e) => `<tr>
+          <td>${new Date(e.date).toLocaleDateString()}</td>
+          <td>${e.title}</td>
+          <td>${CATEGORY_META[e.category]?.label || ""}</td>
+          <td>${memberName(e.paidById)}</td>
+          <td>${STATUS_META[expenseStatus(e)].label}</td>
+          <td style="text-align:right">${formatPeso(e.amount)}</td>
+          <td style="text-align:right">${formatPeso(expensePaid(e))}</td>
+          <td style="text-align:right">${formatPeso(expenseRemaining(e))}</td>
+        </tr>`
+      )
+      .join("");
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${trip.name} — Settlement Summary</title>
+      <style>
+        body{font-family:Inter,system-ui,sans-serif;color:#111;padding:32px;max-width:780px;margin:auto}
+        h1{margin:0 0 4px 0}h2{margin-top:28px;font-size:16px;border-bottom:1px solid #eee;padding-bottom:6px}
+        table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+        td,th{padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:left}
+        .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+        .stat{background:#f7f7f9;padding:10px;border-radius:8px}
+        .stat .l{font-size:11px;color:#666}.stat .v{font-weight:700;font-size:14px}
+        .muted{color:#666;font-size:12px}
+      </style></head><body>
+      <h1>${trip.name}</h1>
+      <div class="muted">${trip.destination || ""} · ${trip.startDate || ""}${trip.endDate ? " → " + trip.endDate : ""}</div>
+      <div class="stats">
+        <div class="stat"><div class="l">Total Budget</div><div class="v">${formatPeso(trip.budget)}</div></div>
+        <div class="stat"><div class="l">Total Spent</div><div class="v">${formatPeso(spent)}</div></div>
+        <div class="stat"><div class="l">Remaining</div><div class="v">${formatPeso(remaining)}</div></div>
+        <div class="stat"><div class="l">Outstanding</div><div class="v">${formatPeso(outstanding)}</div></div>
+        <div class="stat"><div class="l">Participants</div><div class="v">${trip.members.length}</div></div>
+        <div class="stat"><div class="l">Pending payments</div><div class="v">${pending}</div></div>
+      </div>
+      <h2>Expenses</h2>
+      <table><thead><tr><th>Date</th><th>Title</th><th>Category</th><th>Paid by</th><th>Status</th><th style="text-align:right">Amount</th><th style="text-align:right">Paid</th><th style="text-align:right">Remaining</th></tr></thead><tbody>${expenseRows || '<tr><td colspan="8" class="muted">No expenses</td></tr>'}</tbody></table>
+      <h2>Who Pays Whom</h2>
+      <table><tbody>${settlementRows || '<tr><td class="muted">Everyone is even 🎉</td></tr>'}</tbody></table>
+      <p class="muted" style="margin-top:24px">Generated by TipidPay · ${new Date().toLocaleString()}</p>
+      <script>window.onload=()=>window.print();</script>
+      </body></html>`);
+    win.document.close();
+  };
+
+  const remind = () => {
+    if (pending === 0) {
+      toast({ title: "Nothing to remind ✨", description: "All expenses are fully paid." });
+      return;
+    }
+    toast({
+      title: `Reminders sent to ${pending} pending payer${pending > 1 ? "s" : ""} 🔔`,
+      description: "Group members will be notified.",
+    });
   };
 
   return (
@@ -441,24 +604,8 @@ function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void }) {
               {trip.members.length} <Users className="ml-1 h-3 w-3" />
             </Badge>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-primary-foreground">
-            <div className="rounded-xl bg-white/15 p-2">
-              <p className="text-[10px] opacity-80">Spent</p>
-              <p className="text-sm font-bold">{formatPeso(spent)}</p>
-            </div>
-            <div className="rounded-xl bg-white/15 p-2">
-              <p className="text-[10px] opacity-80">{over ? "Over" : "Left"}</p>
-              <p className={`text-sm font-bold ${over ? "text-warning" : ""}`}>
-                {formatPeso(over ? spent - trip.budget : remaining)}
-              </p>
-            </div>
-            <div className="rounded-xl bg-white/15 p-2">
-              <p className="text-[10px] opacity-80">/ Person</p>
-              <p className="text-sm font-bold">{formatPeso(perPerson)}</p>
-            </div>
-          </div>
           {trip.budget > 0 && (
-            <div className="mt-3">
+            <div className="mt-1">
               <Progress value={pct} className="[&>div]:bg-white" />
               <p className="mt-1 text-[10px] text-primary-foreground/80">
                 {pct}% of {formatPeso(trip.budget)} budget
@@ -466,6 +613,20 @@ function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void }) {
               </p>
             </div>
           )}
+        </div>
+
+        {/* Dashboard cards */}
+        <div className="mb-3 grid grid-cols-3 gap-2">
+          <StatCard label="Budget" value={formatPeso(trip.budget)} />
+          <StatCard label="Spent" value={formatPeso(spent)} tone={over ? "danger" : "default"} />
+          <StatCard label="Remaining" value={formatPeso(remaining)} tone={over ? "danger" : "good"} />
+          <StatCard label="Outstanding" value={formatPeso(outstanding)} tone={outstanding > 0 ? "warning" : "good"} />
+          <StatCard label="Participants" value={String(trip.members.length)} />
+          <StatCard
+            label="Pending"
+            value={String(pending)}
+            tone={pending > 0 ? "warning" : "good"}
+          />
         </div>
 
         {over && (
@@ -478,16 +639,29 @@ function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void }) {
           </div>
         )}
 
-        <div className="mb-4 flex gap-2">
+        <div className="mb-3 flex flex-wrap gap-2">
           <Button className="flex-1 gap-1" onClick={() => setExpenseOpen(true)}>
             <Plus className="h-4 w-4" /> Add Expense
           </Button>
           <Button variant="outline" onClick={() => setInviteOpen(true)} className="gap-1">
             <UserPlus className="h-4 w-4" /> Invite
           </Button>
-          <Button variant="outline" size="icon" onClick={exportCSV}>
-            <Download className="h-4 w-4" />
+          <Button variant="outline" size="icon" onClick={remind} title="Send reminders">
+            <Bell className="h-4 w-4" />
           </Button>
+        </div>
+        <div className="mb-3 flex gap-2">
+          <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={exportCSV}>
+            <Download className="h-3 w-3" /> Excel/CSV
+          </Button>
+          <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={exportPDF}>
+            <Printer className="h-3 w-3" /> PDF
+          </Button>
+          {trashedExpenses.length > 0 && (
+            <Button variant="outline" size="sm" className="gap-1" onClick={() => setTrashOpen(true)}>
+              <Trash2 className="h-3 w-3" /> Trash ({trashedExpenses.length})
+            </Button>
+          )}
         </div>
 
         <Tabs defaultValue="expenses" className="w-full">
@@ -512,47 +686,81 @@ function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void }) {
 
           {/* Expenses */}
           <TabsContent value="expenses" className="mt-3 space-y-2">
-            {trip.expenses.length === 0 ? (
+            {/* Search + filters */}
+            <div className="rounded-2xl bg-card p-2 shadow-card space-y-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  className="pl-8"
+                  placeholder="Search expenses, notes, payers..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Select value={filterCat} onValueChange={(v) => setFilterCat(v as any)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <Filter className="mr-1 h-3 w-3" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All categories</SelectItem>
+                    {PRIMARY_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {CATEGORY_META[c].icon} {CATEGORY_META[c].label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All status</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="partial">Partial</SelectItem>
+                    <SelectItem value="unpaid">Unpaid</SelectItem>
+                    <SelectItem value="overdue">Overdue</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={sort} onValueChange={(v) => setSort(v as any)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date_desc">Newest first</SelectItem>
+                    <SelectItem value="date_asc">Oldest first</SelectItem>
+                    <SelectItem value="amount_desc">Amount ↓</SelectItem>
+                    <SelectItem value="amount_asc">Amount ↑</SelectItem>
+                    <SelectItem value="updated">Recently updated</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {visibleExpenses.length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                  No expenses yet. Tap <strong>Add Expense</strong> to start.
+                  {liveExpenses.length === 0 ? (
+                    <>No expenses yet. Tap <strong>Add Expense</strong> to start.</>
+                  ) : (
+                    "No expenses match your filters."
+                  )}
                 </CardContent>
               </Card>
             ) : (
-              trip.expenses.map((e) => {
-                const meta = CATEGORY_META[e.category];
-                const payer = trip.members.find((m) => m.id === e.paidById)?.name || "?";
-                return (
-                  <div
-                    key={e.id}
-                    className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-card"
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-xl">
-                      {meta.icon}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{e.title}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {meta.label} · paid by {payer} · {new Date(e.date).toLocaleDateString()}
-                      </p>
-                      {e.note && (
-                        <p className="mt-0.5 truncate text-[10px] italic text-muted-foreground">
-                          {e.note}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold">{formatPeso(e.amount)}</p>
-                      <button
-                        onClick={() => vacationStore.removeExpense(trip.id, e.id)}
-                        className="text-[10px] text-destructive hover:underline"
-                      >
-                        <Trash2 className="inline h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
+              visibleExpenses.map((e) => (
+                <ExpenseRow
+                  key={e.id}
+                  trip={trip}
+                  expense={e}
+                  onView={() => setViewing(e)}
+                  onEdit={() => setEditing(e)}
+                  onPay={() => setPaying(e)}
+                  onDelete={() => setConfirmDelete(e)}
+                />
+              ))
             )}
           </TabsContent>
 
@@ -693,27 +901,23 @@ function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void }) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1.5 text-xs">
-                {trip.expenses.length === 0 ? (
+                {liveExpenses.length === 0 ? (
                   <p className="text-muted-foreground">Add expenses to enable predictions.</p>
                 ) : (
                   <>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Avg per expense</span>
                       <span className="font-semibold">
-                        {formatPeso(spent / trip.expenses.length)}
+                        {formatPeso(spent / liveExpenses.length)}
                       </span>
                     </div>
-                    {days > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Projected total</span>
-                        <span className="font-semibold">
-                          {formatPeso((spent / Math.max(1, trip.expenses.length)) * days * 3)}
-                        </span>
-                      </div>
-                    )}
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Cost per person</span>
                       <span className="font-semibold">{formatPeso(perPerson)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Outstanding</span>
+                      <span className="font-semibold">{formatPeso(outstanding)}</span>
                     </div>
                   </>
                 )}
@@ -730,7 +934,528 @@ function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void }) {
 
       <AddExpenseDialog trip={trip} open={expenseOpen} onOpenChange={setExpenseOpen} />
       <InviteDialog trip={trip} open={inviteOpen} onOpenChange={setInviteOpen} />
+      {editing && (
+        <EditExpenseDialog
+          trip={trip}
+          expense={editing}
+          open={!!editing}
+          onOpenChange={(o) => !o && setEditing(null)}
+        />
+      )}
+      {paying && (
+        <PaymentDialog
+          trip={trip}
+          expense={paying}
+          open={!!paying}
+          onOpenChange={(o) => !o && setPaying(null)}
+        />
+      )}
+      {viewing && (
+        <ExpenseDetailDialog
+          trip={trip}
+          expense={viewing}
+          open={!!viewing}
+          onOpenChange={(o) => !o && setViewing(null)}
+          onEdit={() => {
+            setEditing(viewing);
+            setViewing(null);
+          }}
+          onPay={() => {
+            setPaying(viewing);
+            setViewing(null);
+          }}
+        />
+      )}
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Move expense to trash?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDelete && expensePaid(confirmDelete) > 0 && (
+                <span className="mb-2 block rounded-md bg-amber-500/10 p-2 text-amber-700">
+                  ⚠ This expense has {formatPeso(expensePaid(confirmDelete))} in recorded payments.
+                  Deleting will exclude it from balances.
+                </span>
+              )}
+              You can restore it from <strong>Trash</strong> within 30 days.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmDelete) {
+                  vacationStore.softDeleteExpense(trip.id, confirmDelete.id);
+                  toast({ title: "Moved to trash", description: "Restore within 30 days." });
+                }
+                setConfirmDelete(null);
+              }}
+            >
+              Move to trash
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <TrashDialog
+        trip={trip}
+        open={trashOpen}
+        onOpenChange={setTrashOpen}
+        items={trashedExpenses}
+      />
     </div>
+  );
+}
+
+/* ---------------- Stat card ---------------- */
+
+function StatCard({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "good" | "warning" | "danger";
+}) {
+  const toneClass =
+    tone === "good"
+      ? "text-emerald-600"
+      : tone === "warning"
+      ? "text-amber-600"
+      : tone === "danger"
+      ? "text-destructive"
+      : "text-foreground";
+  return (
+    <div className="rounded-xl bg-card p-2.5 shadow-card">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={`mt-0.5 text-sm font-bold ${toneClass}`}>{value}</p>
+    </div>
+  );
+}
+
+/* ---------------- Expense row ---------------- */
+
+function ExpenseRow({
+  trip,
+  expense,
+  onView,
+  onEdit,
+  onPay,
+  onDelete,
+}: {
+  trip: Trip;
+  expense: TripExpense;
+  onView: () => void;
+  onEdit: () => void;
+  onPay: () => void;
+  onDelete: () => void;
+}) {
+  const meta = CATEGORY_META[expense.category] || CATEGORY_META.others;
+  const payer = trip.members.find((m) => m.id === expense.paidById)?.name || "?";
+  const paid = expensePaid(expense);
+  const remaining = expenseRemaining(expense);
+  const status = expenseStatus(expense);
+  const StatusIcon = STATUS_META[status].icon;
+  const pct = expense.amount > 0 ? Math.min(100, (paid / expense.amount) * 100) : 0;
+
+  return (
+    <div className="rounded-2xl bg-card p-3 shadow-card">
+      <button onClick={onView} className="flex w-full items-start gap-3 text-left">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-xl">
+          {meta.icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <p className="truncate text-sm font-semibold">{expense.title}</p>
+            <span className="shrink-0 text-sm font-bold">{formatPeso(expense.amount)}</span>
+          </div>
+          <div className="mt-0.5 flex items-center gap-1.5">
+            <span
+              className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium ${STATUS_META[status].className}`}
+            >
+              <StatusIcon className="h-2.5 w-2.5" />
+              {STATUS_META[status].label}
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+              {meta.label} · {payer}
+            </span>
+          </div>
+          {status !== "unpaid" && status !== "paid" && (
+            <div className="mt-1.5">
+              <Progress value={pct} className="h-1" />
+              <p className="mt-0.5 text-[10px] text-muted-foreground">
+                {formatPeso(paid)} paid · {formatPeso(remaining)} left
+              </p>
+            </div>
+          )}
+        </div>
+      </button>
+      <div className="mt-2 flex gap-1">
+        {status !== "paid" && (
+          <Button size="sm" variant="default" className="h-7 flex-1 gap-1 text-xs" onClick={onPay}>
+            <CircleDollarSign className="h-3 w-3" /> Settle Up
+          </Button>
+        )}
+        <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={onEdit}>
+          <Pencil className="h-3 w-3" /> Edit
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 px-2 text-destructive hover:text-destructive"
+          onClick={onDelete}
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Trash dialog ---------------- */
+
+function TrashDialog({
+  trip,
+  open,
+  onOpenChange,
+  items,
+}: {
+  trip: Trip;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  items: TripExpense[];
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Trash2 className="h-4 w-4" /> Trash
+          </DialogTitle>
+          <p className="text-xs text-muted-foreground">
+            Items are permanently deleted 30 days after removal.
+          </p>
+        </DialogHeader>
+        <div className="space-y-2">
+          {items.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">Trash is empty.</p>
+          )}
+          {items.map((e) => {
+            const daysLeft = e.deletedAt
+              ? Math.max(0, 30 - Math.floor((Date.now() - e.deletedAt) / 86400000))
+              : 0;
+            return (
+              <div key={e.id} className="flex items-center gap-2 rounded-xl bg-muted/40 p-2.5">
+                <div className="flex-1 min-w-0">
+                  <p className="truncate text-sm font-semibold">{e.title}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {formatPeso(e.amount)} · auto-deletes in {daysLeft}d
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1 text-xs"
+                  onClick={() => {
+                    vacationStore.restoreExpense(trip.id, e.id);
+                    toast({ title: "Restored ✅" });
+                  }}
+                >
+                  <RotateCcw className="h-3 w-3" /> Restore
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-destructive"
+                  onClick={() => {
+                    if (confirm("Permanently delete this expense?")) {
+                      vacationStore.removeExpense(trip.id, e.id);
+                    }
+                  }}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ---------------- Expense detail dialog (payment history, audit, receipt) ---------------- */
+
+function ExpenseDetailDialog({
+  trip,
+  expense,
+  open,
+  onOpenChange,
+  onEdit,
+  onPay,
+}: {
+  trip: Trip;
+  expense: TripExpense;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onEdit: () => void;
+  onPay: () => void;
+}) {
+  const meta = CATEGORY_META[expense.category] || CATEGORY_META.others;
+  const status = expenseStatus(expense);
+  const paid = expensePaid(expense);
+  const remaining = expenseRemaining(expense);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <span className="text-2xl">{meta.icon}</span>
+            {expense.title}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-xl bg-muted/40 p-2">
+              <p className="text-[10px] text-muted-foreground">Total</p>
+              <p className="text-sm font-bold">{formatPeso(expense.amount)}</p>
+            </div>
+            <div className="rounded-xl bg-emerald-500/10 p-2">
+              <p className="text-[10px] text-emerald-700">Paid</p>
+              <p className="text-sm font-bold text-emerald-700">{formatPeso(paid)}</p>
+            </div>
+            <div className="rounded-xl bg-amber-500/10 p-2">
+              <p className="text-[10px] text-amber-700">Remaining</p>
+              <p className="text-sm font-bold text-amber-700">{formatPeso(remaining)}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <Badge className={STATUS_META[status].className} variant="outline">
+              {STATUS_META[status].label}
+            </Badge>
+            <span className="text-muted-foreground">
+              {meta.label} · {new Date(expense.date).toLocaleDateString()}
+            </span>
+          </div>
+          {expense.note && (
+            <p className="rounded-md bg-muted/40 p-2 text-xs italic">{expense.note}</p>
+          )}
+          {expense.receiptName && (
+            <div className="rounded-md border bg-muted/30 p-2 text-xs">
+              📎 {expense.receiptName}
+              {expense.receiptData && (
+                <a
+                  href={expense.receiptData}
+                  download={expense.receiptName}
+                  className="ml-2 text-primary underline"
+                >
+                  Download
+                </a>
+              )}
+            </div>
+          )}
+
+          <div>
+            <h4 className="mb-1 text-xs font-semibold">Participants</h4>
+            <div className="space-y-1">
+              {expense.splits.map((s) => {
+                const m = trip.members.find((x) => x.id === s.memberId);
+                return (
+                  <div key={s.memberId} className="flex items-center justify-between text-xs">
+                    <span>{m?.name || "?"}</span>
+                    <span className="font-medium">{formatPeso(s.amount)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <h4 className="mb-1 flex items-center justify-between text-xs font-semibold">
+              <span>Payment history</span>
+              {status !== "paid" && (
+                <Button size="sm" className="h-6 gap-1 text-[10px]" onClick={onPay}>
+                  <Plus className="h-3 w-3" /> Add payment
+                </Button>
+              )}
+            </h4>
+            {expense.payments.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No payments yet.</p>
+            ) : (
+              <div className="space-y-1">
+                {expense.payments.map((p) => {
+                  const m = p.byMemberId
+                    ? trip.members.find((x) => x.id === p.byMemberId)
+                    : null;
+                  return (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between rounded-md bg-emerald-500/5 p-2 text-xs"
+                    >
+                      <div>
+                        <p className="font-medium">{formatPeso(p.amount)}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {new Date(p.date).toLocaleString()}
+                          {m && ` · by ${m.name}`}
+                          {p.note && ` · ${p.note}`}
+                        </p>
+                      </div>
+                      <button
+                        className="text-destructive hover:opacity-70"
+                        onClick={() => vacationStore.removePayment(trip.id, expense.id, p.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h4 className="mb-1 flex items-center gap-1 text-xs font-semibold">
+              <History className="h-3 w-3" /> Audit trail
+            </h4>
+            <div className="space-y-1 text-[11px]">
+              {expense.audit.slice().reverse().map((a) => (
+                <div key={a.id} className="flex items-start gap-2 text-muted-foreground">
+                  <span className="w-1 mt-1.5 h-1 rounded-full bg-muted-foreground" />
+                  <span>
+                    <strong className="text-foreground">{a.by}</strong> · {a.action}
+                    {a.details && ` (${a.details})`}
+                    <span className="ml-1 text-[10px]">
+                      {new Date(a.at).toLocaleString()}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onEdit} className="gap-1">
+            <Pencil className="h-3 w-3" /> Edit
+          </Button>
+          <Button onClick={() => onOpenChange(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ---------------- Payment dialog ---------------- */
+
+function PaymentDialog({
+  trip,
+  expense,
+  open,
+  onOpenChange,
+}: {
+  trip: Trip;
+  expense: TripExpense;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  const remaining = expenseRemaining(expense);
+  const [amount, setAmount] = useState(remaining.toString());
+  const [byMemberId, setByMemberId] = useState(expense.paidById);
+  const [note, setNote] = useState("");
+
+  const submit = () => {
+    const n = Number(amount);
+    if (!n || n <= 0) {
+      toast({ title: "Enter a valid amount", variant: "destructive" });
+      return;
+    }
+    if (n > remaining + 0.01) {
+      toast({
+        title: "Amount exceeds remaining balance",
+        description: `Remaining is ${formatPeso(remaining)}`,
+        variant: "destructive",
+      });
+      return;
+    }
+    vacationStore.addPayment(trip.id, expense.id, {
+      amount: Math.round(n * 100) / 100,
+      date: Date.now(),
+      byMemberId,
+      note: note.trim() || undefined,
+    });
+    const newRemaining = remaining - n;
+    toast({
+      title: newRemaining <= 0.01 ? "Fully settled 🎉" : "Payment recorded ✅",
+      description:
+        newRemaining <= 0.01
+          ? "This expense is now fully paid."
+          : `Remaining balance: ${formatPeso(newRemaining)}. Group notified.`,
+    });
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Record payment</DialogTitle>
+          <p className="text-xs text-muted-foreground">
+            {expense.title} · Remaining {formatPeso(remaining)}
+          </p>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Amount (₱)</Label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+            <div className="mt-1 flex gap-1">
+              <button
+                type="button"
+                className="rounded-md bg-muted px-2 py-0.5 text-[10px]"
+                onClick={() => setAmount((remaining / 2).toFixed(2))}
+              >
+                Half
+              </button>
+              <button
+                type="button"
+                className="rounded-md bg-muted px-2 py-0.5 text-[10px]"
+                onClick={() => setAmount(remaining.toFixed(2))}
+              >
+                Full ({formatPeso(remaining)})
+              </button>
+            </div>
+          </div>
+          <div>
+            <Label>Paid by</Label>
+            <Select value={byMemberId} onValueChange={setByMemberId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {trip.members.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Note</Label>
+            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="GCash, cash, etc." />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={submit}>Record payment</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -793,6 +1518,239 @@ function MemberManager({ trip }: { trip: Trip }) {
   );
 }
 
+/* ---------------- Expense form (shared between Add and Edit) ---------------- */
+
+interface ExpenseFormState {
+  title: string;
+  amount: string;
+  category: ExpenseCategory;
+  paidById: string;
+  mode: SplitMode;
+  note: string;
+  receiptName: string;
+  receiptData: string;
+  dueDate: string;
+  selectedIds: string[];
+  percents: Record<string, number>;
+  customs: Record<string, number>;
+}
+
+function ExpenseFormFields({
+  trip,
+  state,
+  setState,
+}: {
+  trip: Trip;
+  state: ExpenseFormState;
+  setState: React.Dispatch<React.SetStateAction<ExpenseFormState>>;
+}) {
+  const amtNum = Number(state.amount) || 0;
+  const update = (patch: Partial<ExpenseFormState>) => setState((s) => ({ ...s, ...patch }));
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label>Title *</Label>
+        <Input
+          value={state.title}
+          onChange={(e) => update({ title: e.target.value })}
+          placeholder="Dinner at..."
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Label>Amount (₱) *</Label>
+          <Input
+            type="number"
+            inputMode="decimal"
+            value={state.amount}
+            onChange={(e) => update({ amount: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label>Category</Label>
+          <Select
+            value={state.category}
+            onValueChange={(v) => update({ category: v as ExpenseCategory })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PRIMARY_CATEGORIES.map((k) => (
+                <SelectItem key={k} value={k}>
+                  {CATEGORY_META[k].icon} {CATEGORY_META[k].label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Label>Paid by</Label>
+          <Select value={state.paidById} onValueChange={(v) => update({ paidById: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {trip.members.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Due date</Label>
+          <Input
+            type="date"
+            value={state.dueDate}
+            onChange={(e) => update({ dueDate: e.target.value })}
+          />
+        </div>
+      </div>
+      <div>
+        <Label>Split mode</Label>
+        <Select value={state.mode} onValueChange={(v) => update({ mode: v as SplitMode })}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="equal">Equal — split among all</SelectItem>
+            <SelectItem value="selected">Selected participants only</SelectItem>
+            <SelectItem value="percentage">Percentage</SelectItem>
+            <SelectItem value="custom">Custom amounts</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {state.mode === "selected" && (
+        <div className="rounded-xl bg-muted/40 p-2">
+          <p className="mb-2 text-xs font-medium">Participants</p>
+          {trip.members.map((m) => (
+            <label key={m.id} className="flex items-center gap-2 py-1 text-sm">
+              <Checkbox
+                checked={state.selectedIds.includes(m.id)}
+                onCheckedChange={(c) => {
+                  update({
+                    selectedIds: c
+                      ? [...state.selectedIds, m.id]
+                      : state.selectedIds.filter((x) => x !== m.id),
+                  });
+                }}
+              />
+              {m.name}
+            </label>
+          ))}
+        </div>
+      )}
+      {state.mode === "percentage" && (
+        <div className="space-y-1 rounded-xl bg-muted/40 p-2">
+          {trip.members.map((m) => (
+            <div key={m.id} className="flex items-center gap-2">
+              <span className="flex-1 text-sm">{m.name}</span>
+              <Input
+                type="number"
+                className="w-20"
+                placeholder="0"
+                value={state.percents[m.id] ?? ""}
+                onChange={(e) =>
+                  update({
+                    percents: { ...state.percents, [m.id]: Number(e.target.value) || 0 },
+                  })
+                }
+              />
+              <span className="text-xs text-muted-foreground">%</span>
+            </div>
+          ))}
+          <p className="text-[10px] text-muted-foreground">
+            Total: {Object.values(state.percents).reduce((s, v) => s + (v || 0), 0)}%
+          </p>
+        </div>
+      )}
+      {state.mode === "custom" && (
+        <div className="space-y-1 rounded-xl bg-muted/40 p-2">
+          {trip.members.map((m) => (
+            <div key={m.id} className="flex items-center gap-2">
+              <span className="flex-1 text-sm">{m.name}</span>
+              <span className="text-xs text-muted-foreground">₱</span>
+              <Input
+                type="number"
+                className="w-24"
+                placeholder="0"
+                value={state.customs[m.id] ?? ""}
+                onChange={(e) =>
+                  update({
+                    customs: { ...state.customs, [m.id]: Number(e.target.value) || 0 },
+                  })
+                }
+              />
+            </div>
+          ))}
+          <p className="text-[10px] text-muted-foreground">
+            Total: {formatPeso(Object.values(state.customs).reduce((s, v) => s + (v || 0), 0))} /{" "}
+            {formatPeso(amtNum)}
+          </p>
+        </div>
+      )}
+      <div>
+        <Label>Receipt</Label>
+        <Input
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+              update({
+                receiptName: f.name,
+                receiptData: typeof reader.result === "string" ? reader.result : "",
+              });
+            };
+            reader.readAsDataURL(f);
+          }}
+        />
+        {state.receiptName && (
+          <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+            <span>📎 {state.receiptName}</span>
+            <button
+              type="button"
+              className="text-destructive"
+              onClick={() => update({ receiptName: "", receiptData: "" })}
+            >
+              Remove
+            </button>
+          </div>
+        )}
+      </div>
+      <div>
+        <Label>Note / description</Label>
+        <Textarea
+          rows={2}
+          value={state.note}
+          onChange={(e) => update({ note: e.target.value })}
+          placeholder="Optional comment..."
+        />
+      </div>
+    </div>
+  );
+}
+
+function validateExpense(amtNum: number, state: ExpenseFormState) {
+  if (!state.title.trim()) return "Title required";
+  if (amtNum <= 0) return "Amount must be > 0";
+  if (state.mode === "percentage") {
+    const total = Object.values(state.percents).reduce((s, v) => s + (v || 0), 0);
+    if (Math.abs(total - 100) > 0.5) return "Percentages must total 100%";
+  }
+  if (state.mode === "custom") {
+    const total = Object.values(state.customs).reduce((s, v) => s + (v || 0), 0);
+    if (Math.abs(total - amtNum) > 0.5) return `Custom amounts must total ${formatPeso(amtNum)}`;
+  }
+  return null;
+}
+
 /* ---------------- Add Expense Dialog ---------------- */
 
 function AddExpenseDialog({
@@ -804,50 +1762,33 @@ function AddExpenseDialog({
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState<ExpenseCategory>("food");
-  const [paidById, setPaidById] = useState(trip.members[0]?.id || "");
-  const [mode, setMode] = useState<SplitMode>("equal");
-  const [note, setNote] = useState("");
-  const [receiptName, setReceiptName] = useState("");
-  const [selectedIds, setSelectedIds] = useState<string[]>(trip.members.map((m) => m.id));
-  const [percents, setPercents] = useState<Record<string, number>>({});
-  const [customs, setCustoms] = useState<Record<string, number>>({});
-
-  const amtNum = Number(amount) || 0;
+  const [state, setState] = useState<ExpenseFormState>({
+    title: "",
+    amount: "",
+    category: "food",
+    paidById: trip.members[0]?.id || "",
+    mode: "equal",
+    note: "",
+    receiptName: "",
+    receiptData: "",
+    dueDate: "",
+    selectedIds: trip.members.map((m) => m.id),
+    percents: {},
+    customs: {},
+  });
 
   const submit = () => {
-    if (!title.trim()) {
-      toast({ title: "Title required", variant: "destructive" });
+    const amtNum = Number(state.amount) || 0;
+    const err = validateExpense(amtNum, state);
+    if (err) {
+      toast({ title: err, variant: "destructive" });
       return;
-    }
-    if (amtNum <= 0) {
-      toast({ title: "Amount must be > 0", variant: "destructive" });
-      return;
-    }
-    if (mode === "percentage") {
-      const total = Object.values(percents).reduce((s, v) => s + (v || 0), 0);
-      if (Math.abs(total - 100) > 0.5) {
-        toast({ title: "Percentages must total 100%", variant: "destructive" });
-        return;
-      }
-    }
-    if (mode === "custom") {
-      const total = Object.values(customs).reduce((s, v) => s + (v || 0), 0);
-      if (Math.abs(total - amtNum) > 0.5) {
-        toast({
-          title: `Custom amounts must total ${formatPeso(amtNum)}`,
-          variant: "destructive",
-        });
-        return;
-      }
     }
     const splits = buildSplits(
       amtNum,
-      mode,
+      state.mode,
       trip.members.map((m) => m.id),
-      { selectedIds, percents, customs }
+      { selectedIds: state.selectedIds, percents: state.percents, customs: state.customs }
     );
     if (splits.length === 0) {
       toast({ title: "Select at least one participant", variant: "destructive" });
@@ -855,23 +1796,35 @@ function AddExpenseDialog({
     }
     vacationStore.addExpense(trip.id, {
       id: newId(),
-      title: title.trim(),
-      category,
+      title: state.title.trim(),
+      category: state.category,
       amount: amtNum,
-      paidById,
+      paidById: state.paidById,
       date: Date.now(),
-      mode,
+      dueDate: state.dueDate ? new Date(state.dueDate).getTime() : undefined,
+      mode: state.mode,
       splits,
-      note: note.trim() || undefined,
-      receiptName: receiptName || undefined,
+      note: state.note.trim() || undefined,
+      receiptName: state.receiptName || undefined,
+      receiptData: state.receiptData || undefined,
+      payments: [],
+      audit: [],
     });
     toast({ title: "Expense added ✅" });
-    setTitle("");
-    setAmount("");
-    setNote("");
-    setReceiptName("");
-    setPercents({});
-    setCustoms({});
+    setState({
+      title: "",
+      amount: "",
+      category: "food",
+      paidById: trip.members[0]?.id || "",
+      mode: "equal",
+      note: "",
+      receiptName: "",
+      receiptData: "",
+      dueDate: "",
+      selectedIds: trip.members.map((m) => m.id),
+      percents: {},
+      customs: {},
+    });
     onOpenChange(false);
   };
 
@@ -881,159 +1834,101 @@ function AddExpenseDialog({
         <DialogHeader>
           <DialogTitle>Add expense</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
-          <div>
-            <Label>Title *</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Dinner at..." />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label>Amount (₱) *</Label>
-              <Input
-                type="number"
-                inputMode="decimal"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>Category</Label>
-              <Select value={category} onValueChange={(v) => setCategory(v as ExpenseCategory)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(CATEGORY_META).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>
-                      {v.icon} {v.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div>
-            <Label>Paid by</Label>
-            <Select value={paidById} onValueChange={setPaidById}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {trip.members.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>Split mode</Label>
-            <Select value={mode} onValueChange={(v) => setMode(v as SplitMode)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="equal">Equal — split among all</SelectItem>
-                <SelectItem value="selected">Selected participants only</SelectItem>
-                <SelectItem value="percentage">Percentage</SelectItem>
-                <SelectItem value="custom">Custom amounts</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {mode === "selected" && (
-            <div className="rounded-xl bg-muted/40 p-2">
-              <p className="mb-2 text-xs font-medium">Participants</p>
-              {trip.members.map((m) => (
-                <label key={m.id} className="flex items-center gap-2 py-1 text-sm">
-                  <Checkbox
-                    checked={selectedIds.includes(m.id)}
-                    onCheckedChange={(c) => {
-                      setSelectedIds((prev) =>
-                        c ? [...prev, m.id] : prev.filter((x) => x !== m.id)
-                      );
-                    }}
-                  />
-                  {m.name}
-                </label>
-              ))}
-            </div>
-          )}
-          {mode === "percentage" && (
-            <div className="space-y-1 rounded-xl bg-muted/40 p-2">
-              {trip.members.map((m) => (
-                <div key={m.id} className="flex items-center gap-2">
-                  <span className="flex-1 text-sm">{m.name}</span>
-                  <Input
-                    type="number"
-                    className="w-20"
-                    placeholder="0"
-                    value={percents[m.id] ?? ""}
-                    onChange={(e) =>
-                      setPercents({ ...percents, [m.id]: Number(e.target.value) || 0 })
-                    }
-                  />
-                  <span className="text-xs text-muted-foreground">%</span>
-                </div>
-              ))}
-              <p className="text-[10px] text-muted-foreground">
-                Total: {Object.values(percents).reduce((s, v) => s + (v || 0), 0)}%
-              </p>
-            </div>
-          )}
-          {mode === "custom" && (
-            <div className="space-y-1 rounded-xl bg-muted/40 p-2">
-              {trip.members.map((m) => (
-                <div key={m.id} className="flex items-center gap-2">
-                  <span className="flex-1 text-sm">{m.name}</span>
-                  <span className="text-xs text-muted-foreground">₱</span>
-                  <Input
-                    type="number"
-                    className="w-24"
-                    placeholder="0"
-                    value={customs[m.id] ?? ""}
-                    onChange={(e) =>
-                      setCustoms({ ...customs, [m.id]: Number(e.target.value) || 0 })
-                    }
-                  />
-                </div>
-              ))}
-              <p className="text-[10px] text-muted-foreground">
-                Total: {formatPeso(Object.values(customs).reduce((s, v) => s + (v || 0), 0))} /{" "}
-                {formatPeso(amtNum)}
-              </p>
-            </div>
-          )}
-
-          <div>
-            <Label>Receipt (optional)</Label>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setReceiptName(e.target.files?.[0]?.name || "")}
-            />
-            {receiptName && (
-              <p className="mt-1 text-[10px] text-muted-foreground">📎 {receiptName}</p>
-            )}
-          </div>
-          <div>
-            <Label>Note</Label>
-            <Textarea
-              rows={2}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Optional comment..."
-            />
-          </div>
-        </div>
+        <ExpenseFormFields trip={trip} state={state} setState={setState} />
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={submit}>Add expense</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ---------------- Edit Expense Dialog ---------------- */
+
+function EditExpenseDialog({
+  trip,
+  expense,
+  open,
+  onOpenChange,
+}: {
+  trip: Trip;
+  expense: TripExpense;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  const initialSelected =
+    expense.mode === "selected"
+      ? expense.splits.map((s) => s.memberId)
+      : trip.members.map((m) => m.id);
+  const initialPercents: Record<string, number> = {};
+  const initialCustoms: Record<string, number> = {};
+  expense.splits.forEach((s) => {
+    if (s.percent != null) initialPercents[s.memberId] = s.percent;
+    if (s.custom != null) initialCustoms[s.memberId] = s.custom;
+  });
+  const cat = (PRIMARY_CATEGORIES as readonly string[]).includes(expense.category)
+    ? expense.category
+    : ("others" as ExpenseCategory);
+
+  const [state, setState] = useState<ExpenseFormState>({
+    title: expense.title,
+    amount: String(expense.amount),
+    category: cat,
+    paidById: expense.paidById,
+    mode: expense.mode,
+    note: expense.note || "",
+    receiptName: expense.receiptName || "",
+    receiptData: expense.receiptData || "",
+    dueDate: expense.dueDate ? new Date(expense.dueDate).toISOString().slice(0, 10) : "",
+    selectedIds: initialSelected,
+    percents: initialPercents,
+    customs: initialCustoms,
+  });
+
+  const submit = () => {
+    const amtNum = Number(state.amount) || 0;
+    const err = validateExpense(amtNum, state);
+    if (err) {
+      toast({ title: err, variant: "destructive" });
+      return;
+    }
+    const splits = buildSplits(
+      amtNum,
+      state.mode,
+      trip.members.map((m) => m.id),
+      { selectedIds: state.selectedIds, percents: state.percents, customs: state.customs }
+    );
+    vacationStore.editExpense(trip.id, expense.id, {
+      title: state.title.trim(),
+      category: state.category,
+      amount: amtNum,
+      paidById: state.paidById,
+      dueDate: state.dueDate ? new Date(state.dueDate).getTime() : undefined,
+      mode: state.mode,
+      splits,
+      note: state.note.trim() || undefined,
+      receiptName: state.receiptName || undefined,
+      receiptData: state.receiptData || undefined,
+    });
+    toast({ title: "Expense updated ✅" });
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit expense</DialogTitle>
+        </DialogHeader>
+        <ExpenseFormFields trip={trip} state={state} setState={setState} />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={submit}>Save changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
