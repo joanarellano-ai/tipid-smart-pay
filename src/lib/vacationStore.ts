@@ -2,17 +2,21 @@ import { useSyncExternalStore } from "react";
 
 export type ExpenseCategory =
   | "accommodation"
-  | "food"
   | "transportation"
+  | "food"
+  | "entrance"
+  | "activities"
+  | "emergency"
+  | "others"
+  // legacy keys kept for backward compatibility with older data:
   | "fuel"
   | "flights"
-  | "activities"
   | "shopping"
-  | "emergency"
   | "entertainment"
   | "misc";
 
 export type SplitMode = "equal" | "percentage" | "custom" | "selected";
+export type ExpenseStatus = "paid" | "partial" | "unpaid" | "overdue";
 
 export interface TripMember {
   id: string;
@@ -22,12 +26,25 @@ export interface TripMember {
 
 export interface ExpenseSplit {
   memberId: string;
-  /** Computed peso amount this member owes for the expense */
   amount: number;
-  /** Used when mode === "percentage" */
   percent?: number;
-  /** Used when mode === "custom" */
   custom?: number;
+}
+
+export interface ExpensePayment {
+  id: string;
+  amount: number;
+  date: number;
+  byMemberId?: string;
+  note?: string;
+}
+
+export interface AuditEntry {
+  id: string;
+  at: number;
+  by: string; // member name or "System"
+  action: string;
+  details?: string;
 }
 
 export interface TripExpense {
@@ -37,10 +54,15 @@ export interface TripExpense {
   amount: number;
   paidById: string;
   date: number;
+  dueDate?: number;
   mode: SplitMode;
   splits: ExpenseSplit[];
   note?: string;
   receiptName?: string;
+  receiptData?: string; // base64 data URL (optional, small)
+  payments: ExpensePayment[];
+  audit: AuditEntry[];
+  deletedAt?: number;
 }
 
 export interface Trip {
@@ -58,12 +80,31 @@ export interface Trip {
 }
 
 const STORAGE_KEY = "tipidpay_trips";
+const TRASH_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 type Listener = () => void;
+
+function migrateExpense(e: any): TripExpense {
+  return {
+    ...e,
+    payments: Array.isArray(e.payments) ? e.payments : [],
+    audit: Array.isArray(e.audit) ? e.audit : [],
+  };
+}
 
 function load(): Trip[] {
   try {
     const s = localStorage.getItem(STORAGE_KEY);
-    if (s) return JSON.parse(s);
+    if (s) {
+      const parsed: Trip[] = JSON.parse(s);
+      // migrate & purge expired trash
+      const now = Date.now();
+      return parsed.map((t) => ({
+        ...t,
+        expenses: (t.expenses || [])
+          .map(migrateExpense)
+          .filter((e) => !e.deletedAt || now - e.deletedAt < TRASH_TTL_MS),
+      }));
+    }
   } catch {}
   return [];
 }
@@ -78,6 +119,10 @@ function emit() {
 
 export function newId() {
   return Math.random().toString(36).slice(2, 10);
+}
+
+function mkAudit(by: string, action: string, details?: string): AuditEntry {
+  return { id: newId(), at: Date.now(), by, action, details };
 }
 
 export const vacationStore = {
@@ -96,16 +141,13 @@ export const vacationStore = {
   },
   addMember(tripId: string, name: string) {
     state = state.map((t) =>
-      t.id === tripId
-        ? { ...t, members: [...t.members, { id: newId(), name }] }
-        : t
+      t.id === tripId ? { ...t, members: [...t.members, { id: newId(), name }] } : t
     );
     emit();
   },
   removeMember(tripId: string, memberId: string) {
     state = state.map((t) => {
       if (t.id !== tripId) return t;
-      // Don't remove if they've paid for expenses or appear in splits
       const used = t.expenses.some(
         (e) => e.paidById === memberId || e.splits.some((s) => s.memberId === memberId)
       );
@@ -115,12 +157,113 @@ export const vacationStore = {
     emit();
   },
   addExpense(tripId: string, expense: TripExpense) {
+    const e: TripExpense = {
+      ...expense,
+      payments: expense.payments || [],
+      audit: [...(expense.audit || []), mkAudit("You", "Created expense")],
+    };
+    state = state.map((t) => (t.id === tripId ? { ...t, expenses: [e, ...t.expenses] } : t));
+    emit();
+  },
+  editExpense(
+    tripId: string,
+    expenseId: string,
+    patch: Partial<TripExpense>,
+    by = "You"
+  ) {
+    state = state.map((t) => {
+      if (t.id !== tripId) return t;
+      return {
+        ...t,
+        expenses: t.expenses.map((e) => {
+          if (e.id !== expenseId) return e;
+          const changed: string[] = [];
+          for (const k of Object.keys(patch) as (keyof TripExpense)[]) {
+            if ((e as any)[k] !== (patch as any)[k]) changed.push(String(k));
+          }
+          return {
+            ...e,
+            ...patch,
+            audit: [...e.audit, mkAudit(by, "Edited expense", changed.join(", ") || undefined)],
+          };
+        }),
+      };
+    });
+    emit();
+  },
+  addPayment(tripId: string, expenseId: string, payment: Omit<ExpensePayment, "id">) {
+    state = state.map((t) => {
+      if (t.id !== tripId) return t;
+      return {
+        ...t,
+        expenses: t.expenses.map((e) => {
+          if (e.id !== expenseId) return e;
+          const p: ExpensePayment = { ...payment, id: newId() };
+          const byName =
+            (payment.byMemberId && t.members.find((m) => m.id === payment.byMemberId)?.name) ||
+            "You";
+          return {
+            ...e,
+            payments: [...e.payments, p],
+            audit: [
+              ...e.audit,
+              mkAudit(byName, "Recorded payment", `₱${p.amount.toFixed(2)}`),
+            ],
+          };
+        }),
+      };
+    });
+    emit();
+  },
+  removePayment(tripId: string, expenseId: string, paymentId: string) {
+    state = state.map((t) => {
+      if (t.id !== tripId) return t;
+      return {
+        ...t,
+        expenses: t.expenses.map((e) => {
+          if (e.id !== expenseId) return e;
+          return {
+            ...e,
+            payments: e.payments.filter((p) => p.id !== paymentId),
+            audit: [...e.audit, mkAudit("You", "Deleted a payment")],
+          };
+        }),
+      };
+    });
+    emit();
+  },
+  softDeleteExpense(tripId: string, expenseId: string) {
     state = state.map((t) =>
-      t.id === tripId ? { ...t, expenses: [expense, ...t.expenses] } : t
+      t.id === tripId
+        ? {
+            ...t,
+            expenses: t.expenses.map((e) =>
+              e.id === expenseId
+                ? { ...e, deletedAt: Date.now(), audit: [...e.audit, mkAudit("You", "Moved to trash")] }
+                : e
+            ),
+          }
+        : t
+    );
+    emit();
+  },
+  restoreExpense(tripId: string, expenseId: string) {
+    state = state.map((t) =>
+      t.id === tripId
+        ? {
+            ...t,
+            expenses: t.expenses.map((e) =>
+              e.id === expenseId
+                ? { ...e, deletedAt: undefined, audit: [...e.audit, mkAudit("You", "Restored from trash")] }
+                : e
+            ),
+          }
+        : t
     );
     emit();
   },
   removeExpense(tripId: string, expenseId: string) {
+    // legacy hard-delete — used as permanent purge from trash
     state = state.map((t) =>
       t.id === tripId ? { ...t, expenses: t.expenses.filter((e) => e.id !== expenseId) } : t
     );
@@ -137,29 +280,36 @@ export function useTrips() {
 }
 
 export const CATEGORY_META: Record<ExpenseCategory, { label: string; icon: string }> = {
-  accommodation: { label: "Hotel", icon: "🏨" },
-  food: { label: "Food", icon: "🍽️" },
-  transportation: { label: "Transport", icon: "🚕" },
+  accommodation: { label: "Accommodation", icon: "🏨" },
+  transportation: { label: "Transportation", icon: "🚕" },
+  food: { label: "Food & Drinks", icon: "🍽️" },
+  entrance: { label: "Entrance Fees", icon: "🎟️" },
+  activities: { label: "Activities", icon: "🎢" },
+  emergency: { label: "Emergency", icon: "🚨" },
+  others: { label: "Others", icon: "🧾" },
+  // legacy
   fuel: { label: "Fuel", icon: "⛽" },
   flights: { label: "Flights", icon: "✈️" },
-  activities: { label: "Activities", icon: "🎢" },
   shopping: { label: "Shopping", icon: "🛍️" },
-  emergency: { label: "Emergency", icon: "🚨" },
   entertainment: { label: "Entertainment", icon: "🎬" },
   misc: { label: "Misc", icon: "🧾" },
 };
+
+/** Categories shown in the picker (new canonical set). */
+export const PRIMARY_CATEGORIES: ExpenseCategory[] = [
+  "accommodation",
+  "transportation",
+  "food",
+  "entrance",
+  "activities",
+  "emergency",
+  "others",
+];
 
 function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
 
-/**
- * Compute splits from amount + mode + raw inputs.
- * For "equal" and "selected": pass `selectedIds`.
- * For "percentage": pass `percents` keyed by memberId (should sum to ~100).
- * For "custom": pass `customs` keyed by memberId (should sum to amount).
- * Drift correction guarantees the splits sum to `amount`.
- */
 export function buildSplits(
   amount: number,
   mode: SplitMode,
@@ -193,7 +343,6 @@ export function buildSplits(
       .filter((id) => (cs[id] || 0) > 0)
       .map((id) => ({ memberId: id, custom: cs[id], amount: round2(cs[id] || 0) }));
   }
-  // Drift correction (except custom — user-defined exact amounts)
   if (mode !== "custom" && splits.length) {
     const sum = splits.reduce((s, x) => s + x.amount, 0);
     const drift = round2(amount - sum);
@@ -204,22 +353,39 @@ export function buildSplits(
   return splits;
 }
 
+/* -------- Payment / status helpers -------- */
+export function expensePaid(e: TripExpense): number {
+  return round2((e.payments || []).reduce((s, p) => s + p.amount, 0));
+}
+export function expenseRemaining(e: TripExpense): number {
+  return round2(Math.max(0, e.amount - expensePaid(e)));
+}
+export function expenseStatus(e: TripExpense): ExpenseStatus {
+  const paid = expensePaid(e);
+  if (paid >= e.amount - 0.01) return "paid";
+  if (e.dueDate && e.dueDate < Date.now() && paid < e.amount - 0.01) return "overdue";
+  if (paid > 0.01) return "partial";
+  return "unpaid";
+}
+
 export interface MemberBalance {
   memberId: string;
-  paid: number; // total they paid up-front
-  share: number; // total they owe across all expenses
-  net: number; // paid - share (positive => owed money, negative => owes money)
+  paid: number;
+  share: number;
+  net: number;
 }
 
 export function computeBalances(trip: Trip): MemberBalance[] {
   const map: Record<string, MemberBalance> = {};
   trip.members.forEach((m) => (map[m.id] = { memberId: m.id, paid: 0, share: 0, net: 0 }));
-  trip.expenses.forEach((e) => {
-    if (map[e.paidById]) map[e.paidById].paid += e.amount;
-    e.splits.forEach((s) => {
-      if (map[s.memberId]) map[s.memberId].share += s.amount;
+  trip.expenses
+    .filter((e) => !e.deletedAt)
+    .forEach((e) => {
+      if (map[e.paidById]) map[e.paidById].paid += e.amount;
+      e.splits.forEach((s) => {
+        if (map[s.memberId]) map[s.memberId].share += s.amount;
+      });
     });
-  });
   Object.values(map).forEach((b) => (b.net = round2(b.paid - b.share)));
   Object.values(map).forEach((b) => {
     b.paid = round2(b.paid);
@@ -234,7 +400,6 @@ export interface SettlementSuggestion {
   amount: number;
 }
 
-/** Greedy minimum-transactions settlement. */
 export function computeSettlements(trip: Trip): SettlementSuggestion[] {
   const balances = computeBalances(trip).map((b) => ({ ...b }));
   const debtors = balances.filter((b) => b.net < -0.01).sort((a, b) => a.net - b.net);
@@ -256,5 +421,19 @@ export function computeSettlements(trip: Trip): SettlementSuggestion[] {
 }
 
 export function totalSpent(trip: Trip): number {
-  return round2(trip.expenses.reduce((s, e) => s + e.amount, 0));
+  return round2(
+    trip.expenses.filter((e) => !e.deletedAt).reduce((s, e) => s + e.amount, 0)
+  );
+}
+
+export function outstandingBalance(trip: Trip): number {
+  return round2(
+    trip.expenses
+      .filter((e) => !e.deletedAt)
+      .reduce((s, e) => s + expenseRemaining(e), 0)
+  );
+}
+
+export function pendingPaymentsCount(trip: Trip): number {
+  return trip.expenses.filter((e) => !e.deletedAt && expenseStatus(e) !== "paid").length;
 }
