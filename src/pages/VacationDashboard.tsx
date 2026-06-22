@@ -1513,6 +1513,50 @@ function ExpenseDetailDialog({
   const status = expenseStatus(expense);
   const paid = expensePaid(expense);
   const remaining = expenseRemaining(expense);
+  const pct = expense.amount > 0 ? Math.min(100, Math.round((paid / expense.amount) * 100)) : 0;
+  const [editingPayment, setEditingPayment] = useState<string | null>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editNote, setEditNote] = useState("");
+
+  const progressColor =
+    status === "paid"
+      ? "[&>div]:bg-emerald-500"
+      : status === "unpaid"
+      ? "[&>div]:bg-destructive"
+      : "[&>div]:bg-amber-500";
+
+  const startEdit = (pid: string, amount: number, note?: string) => {
+    setEditingPayment(pid);
+    setEditAmount(String(amount));
+    setEditNote(note || "");
+  };
+
+  const saveEdit = (pid: string) => {
+    const n = Number(editAmount);
+    if (!n || n <= 0) {
+      toast({ title: "Enter a valid amount", variant: "destructive" });
+      return;
+    }
+    // Re-compute cap excluding this payment
+    const otherPaid = expense.payments
+      .filter((x) => x.id !== pid)
+      .reduce((s, x) => s + x.amount, 0);
+    if (n + otherPaid > expense.amount + 0.01) {
+      toast({
+        title: "Amount exceeds expense total",
+        description: `Max for this payment: ${formatPeso(expense.amount - otherPaid)}`,
+        variant: "destructive",
+      });
+      return;
+    }
+    vacationStore.editPayment(trip.id, expense.id, pid, {
+      amount: Math.round(n * 100) / 100,
+      note: editNote.trim() || undefined,
+    });
+    setEditingPayment(null);
+    toast({ title: "Payment updated ✅" });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
@@ -1537,10 +1581,18 @@ function ExpenseDetailDialog({
               <p className="text-sm font-bold text-amber-700">{formatPeso(remaining)}</p>
             </div>
           </div>
+
+          <div>
+            <div className="mb-1 flex items-center justify-between text-[11px]">
+              <Badge className={STATUS_META[status].className} variant="outline">
+                {STATUS_META[status].label}
+              </Badge>
+              <span className="font-semibold">{pct}% paid</span>
+            </div>
+            <Progress value={pct} className={`h-2 ${progressColor}`} />
+          </div>
+
           <div className="flex items-center gap-2 text-xs">
-            <Badge className={STATUS_META[status].className} variant="outline">
-              {STATUS_META[status].label}
-            </Badge>
             <span className="text-muted-foreground">
               {meta.label} · {new Date(expense.date).toLocaleDateString()}
             </span>
@@ -1595,25 +1647,80 @@ function ExpenseDetailDialog({
                   const m = p.byMemberId
                     ? trip.members.find((x) => x.id === p.byMemberId)
                     : null;
+                  const isEditing = editingPayment === p.id;
                   return (
                     <div
                       key={p.id}
-                      className="flex items-center justify-between rounded-md bg-emerald-500/5 p-2 text-xs"
+                      className="rounded-md bg-emerald-500/5 p-2 text-xs"
                     >
-                      <div>
-                        <p className="font-medium">{formatPeso(p.amount)}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {new Date(p.date).toLocaleString()}
-                          {m && ` · by ${m.name}`}
-                          {p.note && ` · ${p.note}`}
-                        </p>
-                      </div>
-                      <button
-                        className="text-destructive hover:opacity-70"
-                        onClick={() => vacationStore.removePayment(trip.id, expense.id, p.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
+                      {isEditing ? (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-muted-foreground">₱</span>
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              className="h-7 text-xs"
+                              value={editAmount}
+                              onChange={(e) => setEditAmount(e.target.value)}
+                            />
+                          </div>
+                          <Input
+                            className="h-7 text-xs"
+                            placeholder="Note (optional)"
+                            value={editNote}
+                            onChange={(e) => setEditNote(e.target.value)}
+                          />
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              className="h-6 flex-1 text-[10px]"
+                              onClick={() => saveEdit(p.id)}
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 flex-1 text-[10px]"
+                              onClick={() => setEditingPayment(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{formatPeso(p.amount)}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {new Date(p.date).toLocaleString()}
+                              {m && ` · by ${m.name}`}
+                              {p.note && ` · ${p.note}`}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              className="rounded p-1 hover:bg-muted"
+                              onClick={() => startEdit(p.id, p.amount, p.note)}
+                              aria-label="Edit payment"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                            <button
+                              className="rounded p-1 text-destructive hover:bg-muted"
+                              onClick={() => {
+                                if (confirm("Delete this payment record?")) {
+                                  vacationStore.removePayment(trip.id, expense.id, p.id);
+                                }
+                              }}
+                              aria-label="Delete payment"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
