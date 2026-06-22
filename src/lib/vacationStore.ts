@@ -77,6 +77,7 @@ export interface Trip {
   members: TripMember[];
   expenses: TripExpense[];
   createdAt: number;
+  archivedAt?: number;
 }
 
 const STORAGE_KEY = "tipidpay_trips";
