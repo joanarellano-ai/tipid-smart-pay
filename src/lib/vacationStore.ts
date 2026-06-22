@@ -77,6 +77,7 @@ export interface Trip {
   members: TripMember[];
   expenses: TripExpense[];
   createdAt: number;
+  archivedAt?: number;
 }
 
 const STORAGE_KEY = "tipidpay_trips";
@@ -96,14 +97,16 @@ function load(): Trip[] {
     const s = localStorage.getItem(STORAGE_KEY);
     if (s) {
       const parsed: Trip[] = JSON.parse(s);
-      // migrate & purge expired trash
       const now = Date.now();
-      return parsed.map((t) => ({
-        ...t,
-        expenses: (t.expenses || [])
-          .map(migrateExpense)
-          .filter((e) => !e.deletedAt || now - e.deletedAt < TRASH_TTL_MS),
-      }));
+      return parsed
+        // purge trips archived > 30 days
+        .filter((t) => !t.archivedAt || now - t.archivedAt < TRASH_TTL_MS)
+        .map((t) => ({
+          ...t,
+          expenses: (t.expenses || [])
+            .map(migrateExpense)
+            .filter((e) => !e.deletedAt || now - e.deletedAt < TRASH_TTL_MS),
+        }));
     }
   } catch {}
   return [];
@@ -137,6 +140,14 @@ export const vacationStore = {
   },
   remove(id: string) {
     state = state.filter((t) => t.id !== id);
+    emit();
+  },
+  archiveTrip(id: string) {
+    state = state.map((t) => (t.id === id ? { ...t, archivedAt: Date.now() } : t));
+    emit();
+  },
+  unarchiveTrip(id: string) {
+    state = state.map((t) => (t.id === id ? { ...t, archivedAt: undefined } : t));
     emit();
   },
   addMember(tripId: string, name: string) {
@@ -209,6 +220,28 @@ export const vacationStore = {
               ...e.audit,
               mkAudit(byName, "Recorded payment", `₱${p.amount.toFixed(2)}`),
             ],
+          };
+        }),
+      };
+    });
+    emit();
+  },
+  editPayment(
+    tripId: string,
+    expenseId: string,
+    paymentId: string,
+    patch: Partial<Omit<ExpensePayment, "id">>
+  ) {
+    state = state.map((t) => {
+      if (t.id !== tripId) return t;
+      return {
+        ...t,
+        expenses: t.expenses.map((e) => {
+          if (e.id !== expenseId) return e;
+          return {
+            ...e,
+            payments: e.payments.map((p) => (p.id === paymentId ? { ...p, ...patch } : p)),
+            audit: [...e.audit, mkAudit("You", "Edited a payment")],
           };
         }),
       };
