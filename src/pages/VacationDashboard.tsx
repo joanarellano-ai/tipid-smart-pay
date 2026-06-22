@@ -384,7 +384,7 @@ function EditTripDialog({
   const [budget, setBudget] = useState("");
   const [cover, setCover] = useState("🏖️");
 
-  useMemo(() => {
+  useEffect(() => {
     if (trip) {
       setName(trip.name);
       setDestination(trip.destination || "");
