@@ -226,6 +226,28 @@ export const vacationStore = {
     });
     emit();
   },
+  editPayment(
+    tripId: string,
+    expenseId: string,
+    paymentId: string,
+    patch: Partial<Omit<ExpensePayment, "id">>
+  ) {
+    state = state.map((t) => {
+      if (t.id !== tripId) return t;
+      return {
+        ...t,
+        expenses: t.expenses.map((e) => {
+          if (e.id !== expenseId) return e;
+          return {
+            ...e,
+            payments: e.payments.map((p) => (p.id === paymentId ? { ...p, ...patch } : p)),
+            audit: [...e.audit, mkAudit("You", "Edited a payment")],
+          };
+        }),
+      };
+    });
+    emit();
+  },
   removePayment(tripId: string, expenseId: string, paymentId: string) {
     state = state.map((t) => {
       if (t.id !== tripId) return t;
