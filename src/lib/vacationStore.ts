@@ -97,14 +97,16 @@ function load(): Trip[] {
     const s = localStorage.getItem(STORAGE_KEY);
     if (s) {
       const parsed: Trip[] = JSON.parse(s);
-      // migrate & purge expired trash
       const now = Date.now();
-      return parsed.map((t) => ({
-        ...t,
-        expenses: (t.expenses || [])
-          .map(migrateExpense)
-          .filter((e) => !e.deletedAt || now - e.deletedAt < TRASH_TTL_MS),
-      }));
+      return parsed
+        // purge trips archived > 30 days
+        .filter((t) => !t.archivedAt || now - t.archivedAt < TRASH_TTL_MS)
+        .map((t) => ({
+          ...t,
+          expenses: (t.expenses || [])
+            .map(migrateExpense)
+            .filter((e) => !e.deletedAt || now - e.deletedAt < TRASH_TTL_MS),
+        }));
     }
   } catch {}
   return [];
