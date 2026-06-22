@@ -26,6 +26,10 @@ import {
   Clock,
   AlertCircle,
   CircleDollarSign,
+  MoreVertical,
+  Eye,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import {
   vacationStore,
