@@ -135,8 +135,14 @@ export default function VacationDashboard() {
   const trips = useTrips();
   const [openTripId, setOpenTripId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
+  const [confirmDeleteTrip, setConfirmDeleteTrip] = useState<Trip | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const openTrip = trips.find((t) => t.id === openTripId);
+  const activeTrips = trips.filter((t) => !t.archivedAt);
+  const archivedTrips = trips.filter((t) => !!t.archivedAt);
+  const listToShow = showArchived ? archivedTrips : activeTrips;
 
   if (openTrip) {
     return <TripDetail trip={openTrip} onBack={() => setOpenTripId(null)} />;
@@ -166,41 +172,86 @@ export default function VacationDashboard() {
           </Button>
         </div>
 
-        {trips.length === 0 ? (
+        {archivedTrips.length > 0 && (
+          <div className="mb-3 flex gap-2">
+            <Button
+              size="sm"
+              variant={!showArchived ? "default" : "outline"}
+              className="flex-1"
+              onClick={() => setShowArchived(false)}
+            >
+              Active ({activeTrips.length})
+            </Button>
+            <Button
+              size="sm"
+              variant={showArchived ? "default" : "outline"}
+              className="flex-1 gap-1"
+              onClick={() => setShowArchived(true)}
+            >
+              <Archive className="h-3 w-3" /> Archived ({archivedTrips.length})
+            </Button>
+          </div>
+        )}
+
+        {listToShow.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl gradient-primary">
                 <Plane className="h-7 w-7 text-primary-foreground" />
               </div>
-              <h3 className="text-lg font-bold">No trips yet</h3>
+              <h3 className="text-lg font-bold">
+                {showArchived ? "No archived trips" : "No trips yet"}
+              </h3>
               <p className="max-w-xs text-sm text-muted-foreground">
-                Create a vacation, invite friends, and let TIPIDPAY handle the splitting.
+                {showArchived
+                  ? "Archived trips are kept for 30 days, then permanently removed."
+                  : "Create a vacation, invite friends, and let TIPIDPAY handle the splitting."}
               </p>
-              <Button onClick={() => setCreateOpen(true)} className="gap-1">
-                <Plus className="h-4 w-4" /> Plan your first trip
-              </Button>
+              {!showArchived && (
+                <Button onClick={() => setCreateOpen(true)} className="gap-1">
+                  <Plus className="h-4 w-4" /> Plan your first trip
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-3">
-            {trips.map((t) => {
+            {listToShow.map((t) => {
               const spent = totalSpent(t);
               const pct = t.budget > 0 ? Math.min(100, Math.round((spent / t.budget) * 100)) : 0;
               const over = t.budget > 0 && spent > t.budget;
               const pending = pendingPaymentsCount(t);
+              const isArchived = !!t.archivedAt;
+              const daysLeft = t.archivedAt
+                ? Math.max(0, 30 - Math.floor((Date.now() - t.archivedAt) / 86400000))
+                : 0;
               return (
-                <button
+                <div
                   key={t.id}
-                  onClick={() => setOpenTripId(t.id)}
-                  className="block w-full rounded-2xl bg-card p-4 text-left shadow-card transition-all hover:shadow-soft active:scale-[0.99]"
+                  className="relative rounded-2xl bg-card p-4 shadow-card transition-all hover:shadow-soft"
                 >
-                  <div className="flex items-start gap-3">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setOpenTripId(t.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") setOpenTripId(t.id);
+                    }}
+                    className="flex cursor-pointer items-start gap-3 pr-8 text-left"
+                  >
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-accent text-3xl">
                       {t.coverEmoji || "🏖️"}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <h3 className="truncate font-bold text-foreground">{t.name}</h3>
+                        <h3 className="truncate font-bold text-foreground">
+                          {t.name}
+                          {isArchived && (
+                            <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                              · archived
+                            </span>
+                          )}
+                        </h3>
                         <Badge variant="secondary" className="shrink-0 text-[10px]">
                           {t.members.length} <Users className="ml-0.5 h-3 w-3" />
                         </Badge>
@@ -226,14 +277,73 @@ export default function VacationDashboard() {
                           {formatPeso(spent)} spent
                         </p>
                       )}
-                      {pending > 0 && (
-                        <p className="mt-1 text-[10px] font-medium text-amber-600">
-                          {pending} pending payment{pending > 1 ? "s" : ""}
+                      {isArchived ? (
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                          Auto-deletes in {daysLeft}d
                         </p>
+                      ) : (
+                        pending > 0 && (
+                          <p className="mt-1 text-[10px] font-medium text-amber-600">
+                            {pending} pending payment{pending > 1 ? "s" : ""}
+                          </p>
+                        )
                       )}
                     </div>
                   </div>
-                </button>
+
+                  <div className="absolute right-2 top-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label="Trip actions"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem onClick={() => setOpenTripId(t.id)}>
+                          <Eye className="mr-2 h-4 w-4" /> View Trip
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEditingTrip(t)}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit Trip
+                        </DropdownMenuItem>
+                        {isArchived ? (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              vacationStore.unarchiveTrip(t.id);
+                              toast({ title: "Trip restored ✅" });
+                            }}
+                          >
+                            <ArchiveRestore className="mr-2 h-4 w-4" /> Restore
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              vacationStore.archiveTrip(t.id);
+                              toast({
+                                title: "Trip archived",
+                                description: "Kept for 30 days before permanent deletion.",
+                              });
+                            }}
+                          >
+                            <Archive className="mr-2 h-4 w-4" /> Archive Trip
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setConfirmDeleteTrip(t)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete Trip
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -241,7 +351,194 @@ export default function VacationDashboard() {
       </div>
 
       <CreateTripDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={setOpenTripId} />
+      <EditTripDialog
+        trip={editingTrip}
+        open={!!editingTrip}
+        onOpenChange={(o) => !o && setEditingTrip(null)}
+      />
+      <DeleteTripDialog
+        trip={confirmDeleteTrip}
+        open={!!confirmDeleteTrip}
+        onOpenChange={(o) => !o && setConfirmDeleteTrip(null)}
+      />
     </div>
+  );
+}
+
+/* ---------------- Edit Trip Dialog ---------------- */
+
+function EditTripDialog({
+  trip,
+  open,
+  onOpenChange,
+}: {
+  trip: Trip | null;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  const [name, setName] = useState("");
+  const [destination, setDestination] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [description, setDescription] = useState("");
+  const [budget, setBudget] = useState("");
+  const [cover, setCover] = useState("🏖️");
+
+  useMemo(() => {
+    if (trip) {
+      setName(trip.name);
+      setDestination(trip.destination || "");
+      setStartDate(trip.startDate || "");
+      setEndDate(trip.endDate || "");
+      setDescription(trip.description || "");
+      setBudget(String(trip.budget || ""));
+      setCover(trip.coverEmoji || "🏖️");
+    }
+  }, [trip]);
+
+  if (!trip) return null;
+
+  const save = () => {
+    if (!name.trim()) {
+      toast({ title: "Trip name required", variant: "destructive" });
+      return;
+    }
+    vacationStore.update(trip.id, {
+      name: name.trim(),
+      destination: destination.trim(),
+      startDate,
+      endDate,
+      description: description.trim(),
+      coverEmoji: cover,
+      budget: Number(budget) || 0,
+    });
+    toast({ title: "Trip updated ✅" });
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit trip</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Cover</Label>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {COVERS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCover(c)}
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl text-2xl transition ${
+                    cover === c ? "bg-primary/20 ring-2 ring-primary" : "bg-accent hover:bg-accent/70"
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <Label>Trip name *</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div>
+            <Label>Destination</Label>
+            <Input value={destination} onChange={(e) => setDestination(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Start</Label>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </div>
+            <div>
+              <Label>End</Label>
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <Label>Total budget (₱)</Label>
+            <Input
+              type="number"
+              inputMode="numeric"
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Description</Label>
+            <Textarea
+              rows={2}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={save}>Save changes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ---------------- Delete Trip Dialog ---------------- */
+
+function DeleteTripDialog({
+  trip,
+  open,
+  onOpenChange,
+}: {
+  trip: Trip | null;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  if (!trip) return null;
+  const admin = trip.members.find((m) => m.isAdmin);
+  const expenseCount = trip.expenses.filter((e) => !e.deletedAt).length;
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete "{trip.name}"?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete this trip? All trip details, expenses,
+            participants, payments, and records associated with this trip will be permanently
+            removed. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="rounded-xl bg-muted/40 p-3 text-xs">
+          <p>
+            <strong>{expenseCount}</strong> expense{expenseCount === 1 ? "" : "s"} ·{" "}
+            <strong>{trip.members.length}</strong> participant
+            {trip.members.length === 1 ? "" : "s"}
+          </p>
+          {admin && (
+            <p className="mt-1 text-muted-foreground">
+              Admin: {admin.name} (only the trip admin can delete)
+            </p>
+          )}
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              vacationStore.remove(trip.id);
+              toast({ title: "Trip deleted", description: `${trip.name} has been removed.` });
+              onOpenChange(false);
+            }}
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
