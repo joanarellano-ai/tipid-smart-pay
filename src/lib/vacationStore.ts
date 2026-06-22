@@ -142,6 +142,14 @@ export const vacationStore = {
     state = state.filter((t) => t.id !== id);
     emit();
   },
+  archiveTrip(id: string) {
+    state = state.map((t) => (t.id === id ? { ...t, archivedAt: Date.now() } : t));
+    emit();
+  },
+  unarchiveTrip(id: string) {
+    state = state.map((t) => (t.id === id ? { ...t, archivedAt: undefined } : t));
+    emit();
+  },
   addMember(tripId: string, name: string) {
     state = state.map((t) =>
       t.id === tripId ? { ...t, members: [...t.members, { id: newId(), name }] } : t
